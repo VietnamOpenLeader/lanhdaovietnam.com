@@ -1,12 +1,12 @@
 {
-  "dependencies": {},
-  "devDependencies": {
-    "void": "1.1.11",
-    "vite": "^8.0.10"
-  },
-  "name": "lanhdaovietnam-com",
+  "name": "lanhdaovietnam.com",
   "scripts": {
     "dev": "vite",
     "build": "vite build"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "void": "1.1.12",
+    "vite": "^8.3.4"
   }
 }
