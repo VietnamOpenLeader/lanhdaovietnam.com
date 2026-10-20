@@ -5,7 +5,8 @@
     "dev": "vite",
     "typecheck": "void prepare && tsc --noEmit",
     "test:api": "bun scripts/test-local.ts api",
-    "build": "vite build"
+    "content:check": "bun scripts/check-content.ts",
+    "build": "bun run content:check && vite build"
   },
   "dependencies": {
     "@cloudflare/kumo": "2.14.0",

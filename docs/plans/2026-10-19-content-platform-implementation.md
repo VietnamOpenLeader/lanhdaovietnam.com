@@ -215,7 +215,7 @@ export interface ContentSummary {
 
 `contracts.ts` dùng `effect/Schema` làm SoT runtime + static TypeScript contract. Export `contentMetadataSchema` (không body), `contentInputSchema` (metadata + body), `updateContentSchema` (full replacement input + positive integer version), `contentQuerySchema`; TypeScript types suy ra từ schemas, không khai báo song song interface input. Dùng `Schema.toStandardSchemaV1` cho Void validator. `src/core/errors.ts` export `ContentError extends Data.TaggedError`, nhận status `400|401|403|404|409|413|422|500` và code; không phụ thuộc Hono. Dùng cùng field definitions và invariant validators, không nhân đôi luật ngày/event giữa schemas.
 
-- [ ] **2.1 — Viết fixture dùng xuyên task:**
+- [x] **2.1 — Viết fixture dùng xuyên task:**
 
 ```ts
 import type { ContentInput } from "../../src/content/contracts";
@@ -235,7 +235,7 @@ export const publishedPost: ContentInput = {
 };
 ```
 
-- [ ] **2.2 — RED test:**
+- [x] **2.2 — RED test:**
 
 ```ts
 import { expect, test } from "bun:test";
@@ -257,10 +257,10 @@ test("từ chối locale, URL slug và published metadata không hợp lệ", ()
 
 Chạy `bun test tests/unit/content-contracts.test.ts tests/unit/markdown.test.ts`; mong đợi module/schema chưa có hoặc các invalid cases chưa bị từ chối.
 
-- [ ] **2.3 — Implement Effect Schema strict schemas:** locale enum; slug ASCII kebab-case tối đa 160; title 1–200; description 1–500; translationKey 1–160, chỉ chữ số/chữ ASCII/dấu `-_.`; body tối đa 200 KiB UTF-8; request cap 256 KiB; version integer dương. Ngày parse/normalize về ISO UTC; publishedAt bắt buộc khi published và không ở tương lai vì chưa có scheduling. Event bắt buộc startsAt/location, endsAt nếu có không trước startsAt; non-event không nhận event fields khác null. Test bằng `Schema.decodeUnknownSync`; adapter HTTP dùng `Schema.toStandardSchemaV1`. Không cài Zod.
-- [ ] **2.4 — Implement `buildMarkdownIndex(pages)` thuần:** nhận metadata shape của `@void/md/pages`, validate bằng `contentMetadataSchema` vì virtual manifest không có body; kiểm tra locale/slug từ path trùng frontmatter; published-only, translationKey unique theo locale, group kind nhất quán. Bài trong `pages/` có status khác published làm build fail. `manifest.server.ts` là nơi import virtual module, không import nó vào unit tests hoặc CLI Bun.
-- [ ] **2.5 — `check-content.ts`:** kiểm tra file thực dưới ba thư mục library bằng `parseFrontmatter(source: string)` từ `src/content/frontmatter.ts`. Dùng `gray-matter` với YAML engine override qua `yaml@2`, không custom tags, giới hạn alias expansion và bytes; chỉ chấp nhận YAML frontmatter, reject language/engine khác thay vì chạy JavaScript engine. Không tự viết parser frontmatter regex. Tạo bài mẫu ba ngôn ngữ với cùng translationKey `origins`, khác nhóm `api-fixture` của D1 tests.
-- [ ] **2.6 — GREEN:** `bun test tests/unit/content-contracts.test.ts tests/unit/markdown.test.ts`, `bun run content:check`, `bun run build`. Thêm fixture duplicate, draft, mismatched locale, invalid date và event rồi khẳng định gate trả nonzero; không để fixture lỗi trong `pages/`.
+- [x] **2.3 — Implement Effect Schema strict schemas:** locale enum; slug ASCII kebab-case tối đa 160; title 1–200; description 1–500; translationKey 1–160, chỉ chữ số/chữ ASCII/dấu `-_.`; body tối đa 200 KiB UTF-8; request cap 256 KiB; version integer dương. Ngày parse/normalize về ISO UTC; publishedAt bắt buộc khi published và không ở tương lai vì chưa có scheduling. Event bắt buộc startsAt/location, endsAt nếu có không trước startsAt; non-event không nhận event fields khác null. Test bằng `Schema.decodeUnknownSync`; adapter HTTP dùng `Schema.toStandardSchemaV1`. Không cài Zod.
+- [x] **2.4 — Implement `buildMarkdownIndex(pages)` thuần:** nhận metadata shape của `@void/md/pages`, validate bằng `contentMetadataSchema` vì virtual manifest không có body; optional event/published fields thiếu trong frontmatter được normalize về `null` trước decode; kiểm tra locale/slug/title từ path trùng frontmatter; published-only, translationKey unique theo locale, group kind nhất quán. Bài trong `pages/` có status khác published làm build fail. `manifest.server.ts` là nơi import virtual module, không import nó vào unit tests hoặc CLI Bun.
+- [x] **2.5 — `check-content.ts`:** kiểm tra file thực dưới ba thư mục library bằng `parseMarkdownContent(source)` từ `src/content/frontmatter.ts`; gọi `stat` và từ chối file >256 KiB trước khi đọc nội dung. Dùng `gray-matter` với YAML 1.2 engine override qua `yaml@2`, unique keys, custom tags tắt, alias expansion tối đa 20; chỉ chấp nhận schema metadata đã validate. Không tự viết parser frontmatter regex hoặc nhận YAML tag JavaScript. Tạo bài mẫu ba ngôn ngữ với cùng translationKey `origins`, khác nhóm `api-fixture` của D1 tests.
+- [x] **2.6 — GREEN:** `bun test tests/unit/content-contracts.test.ts tests/unit/markdown.test.ts tests/unit/markdown-index.test.ts` PASS (8 tests, 22 assertions; UTF-8 body limit); `bun run content:check` PASS (3 bài); `bun run typecheck` PASS; `bun run build` PASS với `@void/md/pages` manifest; `bun run test:api` PASS (3 tests, 11 assertions).
 - [ ] **2.7 — Commit:** `GIT_EDITOR=true git commit -m "feat: add Effect schemas and localized content contracts"`.
 
 ## Task 3 — Lingui JSON và locale isolation
