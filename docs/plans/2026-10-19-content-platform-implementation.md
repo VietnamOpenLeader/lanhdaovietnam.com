@@ -527,7 +527,7 @@ test("cursor không được tái sử dụng sang locale khác", () => {
 - [x] **7.2 — Implement:** partition manifest theo locale/kind một lần; binary search cursor, lấy K+1 metadata. D1 lấy K+1 bằng indexed keyset; không trộn comparator SQLite collation với JavaScript `localeCompare`. Dùng byte/ASCII ordering của key, timestamp normalized.
 - [x] **7.3 — Complexity:** algorithm index seek + bounded merge `O(log N + log M + K)`; lineage key gồm source+ID/path. Khi cursor key nằm ở nguồn khác, D1 date/id predicate phải vẫn đúng tie ordering. Không lấy K bài mỗi nguồn rồi bỏ nextCursor trước khi xác định item cuối thực sự emit.
 - [x] **7.4 — GREEN:** `bun test tests/unit/pagination.test.ts`, `bun scripts/test-local.ts api`. API test duyệt hết các page của dữ liệu cố định, khẳng định không lặp/mất bài, filter locale/kind và body không xuất hiện trong list. Ghi rõ keyset không phải snapshot bất biến khi nội dung bị sửa giữa các request.
-- [ ] **7.5 — Commit:** `GIT_EDITOR=true git commit -m "feat: merge Markdown and D1 content with bounded pagination"`.
+- [x] **7.5 — Commit:** `GIT_EDITOR=true git commit -m "feat: merge Markdown and D1 content with bounded pagination"`.
 
 ## Task 8 — CLI CRUD, import và transport an toàn
 
@@ -542,7 +542,7 @@ test("cursor không được tái sử dụng sang locale khác", () => {
 - Env CLI: `CONTENT_API_URL`, `CONTENT_API_TOKEN`; HTTPS bắt buộc ngoài loopback. Không có `--token`; URL không được có username/password.
 - Exit codes: 0 success; 1 network/API/domain failure; 2 invalid CLI arguments/config. stdout chỉ JSON, errors/progress vào stderr được redaction.
 
-- [ ] **8.1 — RED test không xóa nếu thiếu xác nhận:**
+- [x] **8.1 — RED test không xóa nếu thiếu xác nhận:**
 
 ```ts
 import { expect, test } from "bun:test";
@@ -560,10 +560,10 @@ test("delete không có --yes không được gửi request", async () => {
 });
 ```
 
-- [ ] **8.2 — Parser:** dùng `node:util.parseArgs`, `Effect.Schema` và shared content contracts; không tự thêm framework CLI. Command logic trả Effect, main là boundary duy nhất dùng `Effect.runPromise`. Import module không tự chạy process; entry chỉ chạy khi `import.meta.main`. Validate args trước token/network.
-- [ ] **8.3 — Import:** đọc frontmatter/body qua cùng parser Task 2, reject file trong cây `pages/*/library/` của repo, gọi POST, không delete/write file; duplicate translationKey+locale trả 409. Không compile script/component từ file import; body lưu dạng plain Markdown renderer an toàn.
-- [ ] **8.4 — Transport:** timeout 15 giây, không tự retry mutation để tránh duplicate; parse non-JSON errors thành thông báo gọn, không in request headers. `delete --yes` là non-interactive rõ ràng, không prompt PTY làm treo.
-- [ ] **8.5 — GREEN:** `bun test tests/unit/content-cli.test.ts`, `bun scripts/test-local.ts cli`. Suite dùng `Bun.spawn` gọi CLI thật, API/D1 thật: create→get→update→list→delete, import hai lần, wrong token, stale version, malformed input, redirect sang server capture khác; server thứ hai không được nhận Authorization.
+- [x] **8.2 — Parser:** dùng `node:util.parseArgs`, `Effect.Schema` và shared content contracts; không tự thêm framework CLI. Command logic trả Effect, main là boundary duy nhất dùng `Effect.runPromise`. Import module không tự chạy process; entry chỉ chạy khi `import.meta.main`. Validate args trước token/network.
+- [x] **8.3 — Import:** đọc frontmatter/body qua cùng parser Task 2, reject file trong cây `pages/*/library/` của repo, gọi POST, không delete/write file; duplicate translationKey+locale trả 409. Không compile script/component từ file import; body lưu dạng plain Markdown renderer an toàn.
+- [x] **8.4 — Transport:** timeout 15 giây, không tự retry mutation để tránh duplicate; parse non-JSON errors thành thông báo gọn, không in request headers. `delete --yes` là non-interactive rõ ràng, không prompt PTY làm treo.
+- [x] **8.5 — GREEN:** `bun test tests/unit/content-cli.test.ts`, `bun scripts/test-local.ts cli`. Suite dùng `Bun.spawn` gọi CLI thật, API/D1 thật: create→get→update→list→delete, import hai lần, wrong token, stale version, malformed input, redirect sang server capture khác; server thứ hai không được nhận Authorization.
 - [ ] **8.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: add authenticated content CLI and Markdown import"`.
 
 ## Task 9 — Trang đa ngôn ngữ và Kumo islands

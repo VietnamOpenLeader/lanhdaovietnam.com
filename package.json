@@ -6,6 +6,7 @@
     "typecheck": "void prepare && bun run i18n:compile && tsc --noEmit",
     "test:api": "bun scripts/test-local.ts api",
     "test:unit": "bun run i18n:compile && bun test tests/unit",
+    "content": "bun scripts/content.ts",
     "content:check": "bun scripts/check-content.ts",
     "i18n:extract": "lingui extract",
     "i18n:check": "bun scripts/check-catalogs.ts && lingui check sync",
