@@ -8,7 +8,7 @@
 
 **Tech stack:** Bun, Node, TypeScript, Void `1.1.12`, React `19`, Effect `4.0.5`, XState `6.0.0-alpha.70`, `@xstate/effect` `1.0.0-alpha.9`, `@xstate/react` `7.0.0-alpha.6`, `@void/md` `1.1.12`, Cloudflare Workers/D1, Kumo, Tailwind CSS `4`, Lingui, Bun test và Playwright.
 
-**Status:** người dùng duyệt thực thi và yêu cầu dùng Effect v4 + XState Effect. Implementation đang tiến hành trên branch `feat/localized-content-platform`.
+**Status:** implementation trên `feat/localized-content-platform` sẵn sàng cho PR sau final review. Live OAuth và production deployment vẫn chưa chạy.
 
 **Design:** [content-platform-design](../specs/2026-10-19-content-platform-design.md).
 
@@ -40,10 +40,9 @@
 | --- | --- |
 | `vite.config.mts`, `tsconfig.json`, `package.json`, `bun.lock` | Plugin Void/React/Markdown/Tailwind, scripts và dependency |
 | `src/content/contracts.ts` | Effect Schema, giới hạn payload, DTO và schema/error mapping |
-| `src/core/errors.ts`, `src/core/run.ts` | Tagged errors và HTTP/CLI Effect boundary |
-| `src/content/programs.ts` | Effect use cases thuần/injected |
-| `src/content/repository.ts` | Effect `Context.Service` repository contract |
-| `src/content/repository.server.ts` | Request-scoped Drizzle/D1 adapter bằng Void APIs |
+| `src/core/errors.ts`, `src/content/run.server.ts` | Tagged errors và Void HTTP/CLI Effect boundary |
+| `src/content/programs.server.ts` | Effect content use cases, server-only |
+| `src/content/repository.server.ts` | Effect service contract cùng request-scoped Drizzle/D1 adapter bằng Void APIs |
 | `src/content/markdown.ts`, `src/content/frontmatter.ts` | Pure validation/indexing metadata và safe frontmatter parser |
 | `src/content/manifest.server.ts` | Bridge duy nhất từ `@void/md/pages` vào server |
 | `src/content/pagination.ts` | Cursor và comparator chung cho hai nguồn |
@@ -258,7 +257,7 @@ test("từ chối locale, URL slug và published metadata không hợp lệ", ()
 
 Chạy `bun test tests/unit/content-contracts.test.ts tests/unit/markdown.test.ts`; mong đợi module/schema chưa có hoặc các invalid cases chưa bị từ chối.
 
-- [x] **2.3 — Implement Effect Schema strict schemas:** locale enum; slug ASCII kebab-case tối đa 160; title 1–200; description 1–500; translationKey 1–160, chỉ chữ số/chữ ASCII/dấu `-_.`; body tối đa 200 KiB UTF-8; request cap 256 KiB; version integer dương. Ngày parse/normalize về ISO UTC; publishedAt bắt buộc khi published và không ở tương lai vì chưa có scheduling. Event bắt buộc startsAt/location, endsAt nếu có không trước startsAt; non-event không nhận event fields khác null. Test bằng `Schema.decodeUnknownSync`; adapter HTTP dùng `Schema.toStandardSchemaV1`. Không cài Zod.
+- [x] **2.3 — Implement Effect Schema strict schemas:** locale enum; slug ASCII kebab-case tối đa 160; title 1–200 Unicode code points; description 1–500; translationKey 1–160, chỉ chữ số/chữ ASCII/dấu `-_.`; body tối đa 200 KiB UTF-8; JSON request wire cap 1.25 MiB; version integer dương. Ngày parse/normalize về ISO UTC; publishedAt bắt buộc khi published và không ở tương lai vì chưa có scheduling. Event bắt buộc startsAt/location, endsAt nếu có không trước startsAt; non-event không nhận event fields khác null. Test bằng `Schema.decodeUnknownSync`; HTTP adapter dùng decoder Effect Schema tùy biến. `Schema.toStandardSchemaV1` chưa được wire vào route. Không cài Zod.
 - [x] **2.4 — Implement `buildMarkdownIndex(pages)` thuần:** nhận metadata shape của `@void/md/pages`, validate bằng `contentMetadataSchema` vì virtual manifest không có body; optional event/published fields thiếu trong frontmatter được normalize về `null` trước decode; kiểm tra locale/slug/title từ path trùng frontmatter; published-only, translationKey unique theo locale, group kind nhất quán. Bài trong `pages/` có status khác published làm build fail. `manifest.server.ts` là nơi import virtual module, không import nó vào unit tests hoặc CLI Bun.
 - [x] **2.5 — `check-content.ts`:** kiểm tra file thực dưới ba thư mục library bằng `parseMarkdownContent(source)` từ `src/content/frontmatter.ts`; gọi `stat` và từ chối file >256 KiB trước khi đọc nội dung. Dùng `gray-matter` với YAML 1.2 engine override qua `yaml@2`, unique keys, custom tags tắt, alias expansion tối đa 20; chỉ chấp nhận schema metadata đã validate. Không tự viết parser frontmatter regex hoặc nhận YAML tag JavaScript. Tạo bài mẫu ba ngôn ngữ với cùng translationKey `origins`, khác nhóm `api-fixture` của D1 tests.
 - [x] **2.6 — GREEN:** `bun test tests/unit/content-contracts.test.ts tests/unit/markdown.test.ts tests/unit/markdown-index.test.ts` PASS (8 tests, 22 assertions; UTF-8 body limit); `bun run content:check` PASS (3 bài); `bun run typecheck` PASS; `bun run build` PASS với `@void/md/pages` manifest; `bun run test:api` PASS (3 tests, 11 assertions).
@@ -721,7 +720,7 @@ test("người đọc đổi ngôn ngữ qua bản dịch có thật", async ({ 
 ```
 
 - [ ] **11.2 — Browser matrix:** Chromium desktop và mobile viewport; signin/signup/signout email thật, member không được mutate, admin session mutate, login pending/error, mobile nav nếu có, language switch, locale/date formatting, missing translation, draft direct URL, next/back pages, Kumo focus/keyboard, reduced-motion. Capture screenshot lúc layout ổn định và console errors/hydration mismatch/network failures. Hiện E2E cover signup/signout, required fields, locale/filter/not-found, keyboard/reduced-motion và page errors. Chưa cover browser member-denial/admin mutation, login pending/error, event date, draft direct URL, pagination, missing-translation fallback, request/network failures đầy đủ hoặc screenshot artifact ổn định.
-- [x] **11.3 — Asset checks:** article không có island không tải app-wide hydration bundle; login chỉ tải island/catalog của locale hiện tại. Kiểm tra network/bundle manifest thay vì khẳng định “zero JS” tuyệt đối vì Markdown code-copy script có thể tồn tại.
+- [ ] **11.3 — Asset checks:** kiểm tra production bundle manifest và giới hạn JavaScript theo route; bài tĩnh không được tải app-wide hydration bundle, login chỉ tải island/catalog locale hiện tại. Hiện E2E chỉ loại trừ request có tên `LoginIsland`/`login-machine` trên bài Markdown và catalog source của locale khác trên trang login; chưa chứng minh bundle budget tổng quát.
 - [x] **11.4 — CI:** Node 24 + Bun, `bun install --frozen-lockfile`, `bun run check`, `bunx playwright install --with-deps chromium`, `bun run test:e2e`, upload test artifacts khi lỗi. Không cung cấp production OAuth/API token cho PR test.
 - [x] **11.5 — Deploy workflow:** thêm local gates trước bước deploy hiện có; candidate manifest preflight là bước riêng trước migration/deploy, dùng token read-only content-check được operator cấp. Deployment tự động sau bootstrap bắt buộc preflight; thiếu credential hoặc endpoint không truy cập được thì dừng, không skip im lặng. Lần đầu chưa có endpoint cần operator bootstrap theo runbook với phê duyệt riêng; không tự fallback từ preflight lỗi sang deploy. Không chạy workflow/deploy trong phiên triển khai này nếu chưa được phép.
 - [x] **11.6 — Runbook:** fresh install→prepare→migrate local→dev; viết Markdown/frontmatter; tạo từng locale; tạo draft/publish/update/delete qua CLI; cấp admin ID qua profile, tạo token ngoài source và lưu digest server, rotate/revoke, callback URLs OAuth từng môi trường. Không ghi token thật hoặc mặc định dùng production API trong ví dụ.
@@ -731,6 +730,7 @@ test("người đọc đổi ngôn ngữ qua bản dịch có thật", async ({ 
 ```sh
 bun install --frozen-lockfile
 bun run check
+bun run test:migrations:d1
 bunx playwright install --with-deps chromium
 bun run test:e2e
 git diff --check
@@ -738,7 +738,7 @@ git diff --check
 
 Mong đợi tất cả exit 0; báo số test thực tế, screenshots/artifacts và những check bị chặn. Social OAuth E2E chỉ đánh dấu PASS khi đã callback thật qua từng provider; thiếu credentials thì ghi NOT RUN, không đánh dấu xong bằng mock.
 
-The exact local validation sequence passed, including `bunx playwright install --with-deps chromium` and Playwright's downloaded Chromium. E2E passed 12 desktop/mobile cases; no stable screenshot artifact was captured. Live social OAuth callbacks remain NOT RUN because provider credentials were not supplied.
+The exact local validation sequence passed, including `bunx playwright install --with-deps chromium` and Playwright's downloaded Chromium. E2E passed 12 desktop/mobile cases; no stable screenshot artifact was captured. The Wrangler D1 migration test covers a fresh install and an upgrade with migration 2 already recorded, including failed-migration rollback and repaired retry. Live social OAuth callbacks remain NOT RUN because provider credentials were not supplied.
 
 - [x] **11.9 — Commit:** `GIT_EDITOR=true git commit -m "test: gate localized content workflows and document operations"`.
 
@@ -769,5 +769,5 @@ The exact local validation sequence passed, including `bunx playwright install -
 - Effect v4 LTS, platform scope and Standard Schema bridge — [Effect repository, retrieved 2026-10-19](https://github.com/Effect-TS/effect), [platform guide, retrieved 2026-10-19](https://effect.website/docs/v4/platform/introduction), [Schema adapter, retrieved 2026-10-19](https://effect.website/docs/v4/schema/standard-schema).
 - `@xstate/effect` alpha requirements, actor lifecycle and React usage — [XState Effect repository, retrieved 2026-10-19](https://github.com/statelyai/xstate/tree/next/packages/xstate-effect).
 - Void host boundaries — [Hono routing, retrieved 2026-10-19](https://void.cloud/guide/server-routing) and [Drizzle/D1, retrieved 2026-10-19](https://void.cloud/guide/database).
-- Fresh local verification: `bun install --frozen-lockfile` PASS; `bun run check` PASS (49 unit, 20 integration, 2 CLI tests, production build); `bunx void db migrate` PASS (four local migrations); `bunx playwright install --with-deps chromium` PASS; `bun run test:e2e` PASS (12 desktop/mobile tests); `bash scripts/ship-gate.sh` PASS; `git diff --check` PASS.
+- Fresh local verification: `bun install --frozen-lockfile` PASS; `bun run check` PASS (51 unit, 20 integration, 2 CLI tests, Wrangler D1 migration harness, production build); `bun run test:migrations:d1` PASS (Wrangler 4.151.0 fresh-install and migration-2-upgrade paths, rollback/retry); `bunx playwright install --with-deps chromium` PASS; `bun run test:e2e` PASS (12 desktop/mobile tests); `bash scripts/ship-gate.sh` PASS; `git diff --check` PASS.
 - NOT RUN: live social OAuth callbacks and production deployment. Task 11.2 remains partial: browser admin/member mutation, pending/error states, event dates, direct draft URLs, pagination, missing-translation fallback, complete network failure monitoring and retained screenshot evidence are not automated.

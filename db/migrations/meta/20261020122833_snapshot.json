@@ -225,11 +225,11 @@
         },
         "content_title_nonempty": {
           "name": "content_title_nonempty",
-          "value": "length(trim(\"content_posts\".\"title\", char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) BETWEEN 1 AND 200"
+          "value": "length(\"content_posts\".\"title\") BETWEEN 1 AND 200 AND length(trim(\"content_posts\".\"title\", char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) > 0"
         },
         "content_description_nonempty": {
           "name": "content_description_nonempty",
-          "value": "length(trim(\"content_posts\".\"description\", char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) BETWEEN 1 AND 500"
+          "value": "length(\"content_posts\".\"description\") BETWEEN 1 AND 500 AND length(trim(\"content_posts\".\"description\", char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) > 0"
         },
         "content_body_size": {
           "name": "content_body_size",
@@ -241,7 +241,7 @@
         },
         "content_event_location_nonempty": {
           "name": "content_event_location_nonempty",
-          "value": "\"content_posts\".\"kind\" != 'event' OR length(trim(\"content_posts\".\"location\", char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) > 0"
+          "value": "\"content_posts\".\"kind\" != 'event' OR (length(\"content_posts\".\"location\") BETWEEN 1 AND 200 AND length(trim(\"content_posts\".\"location\", char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) > 0)"
         },
         "content_version_positive": {
           "name": "content_version_positive",

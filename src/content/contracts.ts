@@ -15,8 +15,12 @@ export type ContentSource = "markdown" | "d1";
 const nonEmptyString = (maxLength: number) =>
   Schema.String.check(
     Schema.isMinLength(1),
-    Schema.isMaxLength(maxLength),
-    Schema.makeFilter((value) => (value.trim().length > 0 ? undefined : "Value must not be blank")),
+    Schema.makeFilter((value) => {
+      if (value.trim().length === 0) return "Value must not be blank";
+      return Array.from(value).length <= maxLength
+        ? undefined
+        : `Value exceeds ${maxLength} characters`;
+    }),
   );
 
 const slugSchema = Schema.String.check(

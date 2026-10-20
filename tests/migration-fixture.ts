@@ -30,15 +30,14 @@ export async function applyProjectMigrations(db: Database, range: MigrationRange
   db.exec("PRAGMA foreign_keys=ON");
   db.exec(`
     CREATE TABLE IF NOT EXISTS __test_migration_history (
-      idx INTEGER PRIMARY KEY,
-      tag TEXT NOT NULL
+      tag TEXT PRIMARY KEY
     )
   `);
   const journal = JSON.parse(await readFile(journalPath, "utf8")) as MigrationJournal;
   const entries = journal.entries.filter(({ idx }) => includesIndex(idx, range));
 
   for (const entry of entries) {
-    const applied = db.query("SELECT 1 FROM __test_migration_history WHERE idx = ?").get(entry.idx);
+    const applied = db.query("SELECT 1 FROM __test_migration_history WHERE tag = ?").get(entry.tag);
     if (applied) continue;
 
     const migration = await readFile(join(migrationsDirectory, `${entry.tag}.sql`), "utf8");
@@ -48,10 +47,7 @@ export async function applyProjectMigrations(db: Database, range: MigrationRange
         const sql = statement.trim();
         if (sql.length > 0) db.exec(sql);
       }
-      db.query("INSERT INTO __test_migration_history (idx, tag) VALUES (?, ?)").run(
-        entry.idx,
-        entry.tag,
-      );
+      db.query("INSERT INTO __test_migration_history (tag) VALUES (?)").run(entry.tag);
     })();
   }
 }

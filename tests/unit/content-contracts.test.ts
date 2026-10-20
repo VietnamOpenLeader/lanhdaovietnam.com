@@ -42,3 +42,10 @@ test("validates event timing and required location", () => {
   expect(() => decode({ ...event, endsAt: null, location: null })).toThrow();
   expect(() => decode({ ...event, endsAt: null, location: "\u00a0\u2003" })).toThrow();
 });
+
+test("text limits count Unicode code points consistently with SQLite", () => {
+  expect(() => decode({ ...publishedPost, title: "😀".repeat(200) })).not.toThrow();
+  expect(() => decode({ ...publishedPost, title: "😀".repeat(201) })).toThrow();
+  expect(() => decode({ ...publishedPost, description: "😀".repeat(500) })).not.toThrow();
+  expect(() => decode({ ...publishedPost, description: "😀".repeat(501) })).toThrow();
+});

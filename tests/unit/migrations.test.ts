@@ -257,10 +257,18 @@ test("forward migration downgrades malformed legacy dates and blank bodies", asy
   expect(db.query("SELECT status FROM content_posts WHERE id = 'legacy-post-2'").get()).toEqual({
     status: "published",
   });
-  expect(db.query("SELECT idx FROM __test_migration_history WHERE idx = 2").get()).toEqual({
-    idx: 2,
+  expect(
+    db
+      .query("SELECT tag FROM __test_migration_history WHERE tag = ?")
+      .get("20261020104231_stiff_nighthawk"),
+  ).toEqual({
+    tag: "20261020104231_stiff_nighthawk",
   });
-  expect(db.query("SELECT idx FROM __test_migration_history WHERE idx = 3").get()).toBeNull();
+  expect(
+    db
+      .query("SELECT tag FROM __test_migration_history WHERE tag = ?")
+      .get("20261020122833_true_korath"),
+  ).toBeNull();
 
   await applyProjectMigrations(db, { after: 2 });
 
@@ -276,11 +284,47 @@ test("forward migration downgrades malformed legacy dates and blank bodies", asy
     status: "draft",
     published_at: null,
   });
-  expect(db.query("SELECT idx FROM __test_migration_history WHERE idx = 3").get()).toEqual({
-    idx: 3,
+  expect(
+    db
+      .query("SELECT tag FROM __test_migration_history WHERE tag = ?")
+      .get("20261020122833_true_korath"),
+  ).toEqual({
+    tag: "20261020122833_true_korath",
   });
   expect(db.query("SELECT COUNT(*) AS total FROM posts").get()).toEqual({ total: 2 });
 
+  db.close();
+});
+
+test("forward migration preserves legacy content edited after the initial backfill", async () => {
+  const db = new Database(":memory:");
+  await applyProjectMigrations(db, { through: 0 });
+  db.run("INSERT INTO posts (title, body, created_at) VALUES (?, ?, ?)", [
+    "Legacy article",
+    " \n\t ",
+    "not-a-date",
+  ]);
+  await applyProjectMigrations(db, { after: 0, through: 2 });
+  db.query(`
+    UPDATE content_posts
+    SET title = ?, description = ?, body = ?, status = ?, published_at = ?, updated_at = ?, version = ?
+    WHERE id = 'legacy-post-1'
+  `).run(
+    "Reviewed article",
+    "Reviewed by an editor",
+    "# Operator repair",
+    "published",
+    "2026-10-19T10:11:12.000Z",
+    "2026-10-20T10:11:12.000Z",
+    2,
+  );
+  const operatorEdit = db.query("SELECT * FROM content_posts WHERE id = 'legacy-post-1'").get();
+
+  await applyProjectMigrations(db, { after: 2 });
+
+  expect(db.query("SELECT * FROM content_posts WHERE id = 'legacy-post-1'").get()).toEqual(
+    operatorEdit,
+  );
   db.close();
 });
 
@@ -303,6 +347,10 @@ test("content constraints reject invalid locales, unpublished dates, event order
     expect(() => insertRecord(db, { title: whitespace })).toThrow();
     expect(() => insertRecord(db, { description: whitespace })).toThrow();
   }
+  expect(() => insertRecord(db, { title: `${"x".repeat(200)} ` })).toThrow();
+  expect(() => insertRecord(db, { title: "😀".repeat(201) })).toThrow();
+  expect(() => insertRecord(db, { description: `${"x".repeat(500)} ` })).toThrow();
+  expect(() => insertRecord(db, { description: "😀".repeat(501) })).toThrow();
   expect(() =>
     insertRecord(db, {
       kind: "event",
@@ -310,6 +358,32 @@ test("content constraints reject invalid locales, unpublished dates, event order
       location: "\u00a0\u2003",
     }),
   ).toThrow();
+  expect(() =>
+    insertRecord(db, {
+      kind: "event",
+      starts_at: "2026-10-20T00:00:00.000Z",
+      location: `${"x".repeat(200)} `,
+    }),
+  ).toThrow();
+  expect(() =>
+    insertRecord(db, {
+      kind: "event",
+      starts_at: "2026-10-20T00:00:00.000Z",
+      location: "😀".repeat(201),
+    }),
+  ).toThrow();
+  insertRecord(db, {
+    id: "emoji-title",
+    translation_key: "emoji-title",
+    slug: "emoji-title",
+    title: "😀".repeat(200),
+  });
+  insertRecord(db, {
+    id: "emoji-description",
+    translation_key: "emoji-description",
+    slug: "emoji-description",
+    description: "😀".repeat(500),
+  });
   expect(() => insertRecord(db, { version: 0 })).toThrow();
 
   db.close();
@@ -351,7 +425,7 @@ test("all locales in one translation group keep the same content kind", async ()
   db.close();
 });
 
-test("migration stops before rebuilding for legacy id, key, and locale slug collisions", async () => {
+test("migration rolls back on legacy id, key, and locale slug collisions", async () => {
   const collisions: ReadonlyArray<Pick<ContentRecord, "id" | "translation_key" | "slug">> = [
     { id: "legacy-post-1", translation_key: "reserved-id", slug: "reserved-id" },
     { id: "reserved-key", translation_key: "legacy-post-1", slug: "reserved-key" },
@@ -371,13 +445,15 @@ test("migration stops before rebuilding for legacy id, key, and locale slug coll
       .get();
     const contentRows = db.query("SELECT * FROM content_posts ORDER BY id").all();
 
-    await expect(applyProjectMigrations(db, { after: 1 })).rejects.toThrow(
-      /CHECK constraint failed/u,
-    );
-    expect(db.query("SELECT idx FROM __test_migration_history WHERE idx = 2").get()).toBeNull();
+    await expect(applyProjectMigrations(db, { after: 1 })).rejects.toThrow();
     expect(
       db
-        .query("SELECT name FROM sqlite_temp_master WHERE name = '__content_posts_migration_guard'")
+        .query("SELECT tag FROM __test_migration_history WHERE tag = ?")
+        .get("20261020104231_stiff_nighthawk"),
+    ).toBeNull();
+    expect(
+      db
+        .query("SELECT name FROM sqlite_master WHERE name = '__ivt_migration_20261020122833_guard'")
         .get(),
     ).toBeNull();
     expect(
@@ -396,16 +472,24 @@ test("migration stops before rebuilding for legacy id, key, and locale slug coll
 
     db.query("DELETE FROM content_posts WHERE id = ?").run(collision.id);
     await applyProjectMigrations(db, { after: 1 });
-    expect(db.query("SELECT idx FROM __test_migration_history WHERE idx = 2").get()).toEqual({
-      idx: 2,
+    expect(
+      db
+        .query("SELECT tag FROM __test_migration_history WHERE tag = ?")
+        .get("20261020104231_stiff_nighthawk"),
+    ).toEqual({
+      tag: "20261020104231_stiff_nighthawk",
     });
-    expect(db.query("SELECT idx FROM __test_migration_history WHERE idx = 3").get()).toEqual({
-      idx: 3,
+    expect(
+      db
+        .query("SELECT tag FROM __test_migration_history WHERE tag = ?")
+        .get("20261020122833_true_korath"),
+    ).toEqual({
+      tag: "20261020122833_true_korath",
     });
 
     expect(
       db
-        .query("SELECT name FROM sqlite_temp_master WHERE name = '__content_posts_migration_guard'")
+        .query("SELECT name FROM sqlite_master WHERE name = '__ivt_migration_20261020122833_guard'")
         .get(),
     ).toBeNull();
     expect(
@@ -448,7 +532,7 @@ test("migration refuses ECMAScript-whitespace-only existing bodies before rebuil
     );
     expect(
       db
-        .query("SELECT name FROM sqlite_temp_master WHERE name = '__content_posts_migration_guard'")
+        .query("SELECT name FROM sqlite_master WHERE name = '__ivt_migration_20261020122833_guard'")
         .get(),
     ).toBeNull();
     expect(db.query("SELECT * FROM content_posts ORDER BY id").all()).toEqual(contentRows);

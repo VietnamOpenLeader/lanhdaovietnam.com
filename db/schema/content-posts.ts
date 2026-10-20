@@ -42,17 +42,17 @@ export const contentPosts = sqliteTable(
     check("content_status_valid", sql`${table.status} IN ('draft', 'published')`),
     check(
       "content_title_nonempty",
-      sql`length(trim(${table.title}, ${ecmascriptWhitespace()})) BETWEEN 1 AND 200`,
+      sql`length(${table.title}) BETWEEN 1 AND 200 AND length(trim(${table.title}, ${ecmascriptWhitespace()})) > 0`,
     ),
     check(
       "content_description_nonempty",
-      sql`length(trim(${table.description}, ${ecmascriptWhitespace()})) BETWEEN 1 AND 500`,
+      sql`length(${table.description}) BETWEEN 1 AND 500 AND length(trim(${table.description}, ${ecmascriptWhitespace()})) > 0`,
     ),
     check("content_body_size", sql`length(CAST(${table.body} AS BLOB)) <= 204800`),
     check("content_body_nonempty", sql`length(trim(${table.body}, ${ecmascriptWhitespace()})) > 0`),
     check(
       "content_event_location_nonempty",
-      sql`${table.kind} != 'event' OR length(trim(${table.location}, ${ecmascriptWhitespace()})) > 0`,
+      sql`${table.kind} != 'event' OR (length(${table.location}) BETWEEN 1 AND 200 AND length(trim(${table.location}, ${ecmascriptWhitespace()})) > 0)`,
     ),
     check("content_version_positive", sql`${table.version} > 0`),
     check(

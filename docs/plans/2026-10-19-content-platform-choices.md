@@ -50,7 +50,7 @@ Playwright E2E ran successfully against the installed system Chrome in desktop a
 
 - **When:** Post-review P1 remediation; the developer accepted the recommendation to backfill.
 - **Scenario:** Existing rows have only `title`, `body`, and `created_at`; the new localized catalog requires locale, slug, translation key, kind, description, status, and an ISO timestamp.
-- **Decision:** A data-preserving forward migration copies each row to a Vietnamese article with deterministic `legacy-post-<id>` key/slug and normalized creation time. Only nonblank title/body and strict, calendar-valid, non-future dates are published; malformed content remains draft with fallback metadata, while the original `posts` row remains unchanged.
+- **Decision:** A data-preserving forward migration copies each row to a Vietnamese article with deterministic `legacy-post-<id>` key/slug and normalized creation time. Only nonblank title/body and strict, calendar-valid, non-future dates are published; malformed, untouched version-1 imports become drafts with fallback metadata, while versioned operator edits are preserved and the original `posts` row remains unchanged.
 - **Reach:** Existing valid posts appear in the new `/vi/` catalog, while the source table remains available for recovery and audit.
 - **Verdict / confidence:** sound / high.
 
@@ -96,6 +96,15 @@ Playwright E2E ran successfully against the installed system Chrome in desktop a
 - **Decision:** Keep applied migration `20261020104231_stiff_nighthawk` unchanged. A forward migration (`20261020122833_true_korath`) repairs legacy rows created under its permissive timestamp/body checks, then runs a precondition before rebuilding. It fails closed for remaining blank metadata/body or mixed-kind groups. Execute statements and migration-history insertion in one SQLite transaction in the test fixture, so failure rolls back and a repaired database can retry.
 - **Reach:** Operators must resolve database conflicts before retrying migration; the migration never silently drops or overwrites those rows. Malformed legacy dates remain drafts, not published records.
 - **Verdict / confidence:** sound / high.
+
+### Count text limits in Unicode code points
+
+- **When:** Final D1/application contract review.
+- **Scenario:** A title containing 200 emoji has 200 Unicode code points but 400 UTF-16 code units; SQLite `length(TEXT)` reports 200 while JavaScript `.length` reports 400.
+- **Plan gap:** Text limits were specified numerically but the unit was not defined across TypeScript and SQLite.
+- **Decision:** Count title, description, and location limits in Unicode code points so Effect validation and D1 `length(TEXT)` agree; keep the body limit byte-based.
+- **Reach:** API and direct D1 writes enforce the same maximum text lengths. User-facing grapheme clusters containing combining marks may contain more than one code point.
+- **Verdict / confidence:** sound / medium.
 
 ### Use a bounded wire-body allowance
 
