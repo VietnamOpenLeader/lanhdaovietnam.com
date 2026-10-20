@@ -23,7 +23,7 @@ Nội dung Markdown.
 
 `kind` is `article`, `news`, or `event`. Published Markdown in `pages/` must be complete and valid. Do not store drafts there: a file in the public Pages tree is directly reachable even if it is omitted from a list.
 
-Events additionally require `startsAt` and `location`; `endsAt` is optional but cannot precede `startsAt`. Timestamps use UTC ISO format. Raw HTML is not enabled for D1 Markdown rendering.
+Published bodies cannot be blank, and `publishedAt` cannot be in the future. Events additionally require `startsAt` and `location`; `endsAt` is optional but cannot precede `startsAt`. Timestamps use UTC ISO format. Raw HTML is not enabled for D1 Markdown rendering.
 
 Create one file for each available locale. Do not reuse a slug across locales by assumption; language switch links are built from published translation records. A translation group belongs to either Markdown or D1, never both. Run the content gate before a commit:
 
@@ -35,6 +35,8 @@ bun run i18n:check
 ## D1-backed content
 
 Use D1 for content that changes at runtime. The CLI calls the local or configured API; it never writes to a Worker filesystem.
+
+The additive legacy migration keeps the original `posts` table unchanged and copies rows into Vietnamese article records using stable `legacy-post-<id>` slugs and translation keys. Valid legacy rows become published articles; rows with invalid title/body metadata become drafts with a note to review the original row.
 
 ```sh
 export CONTENT_API_URL=http://127.0.0.1:5173

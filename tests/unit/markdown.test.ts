@@ -34,6 +34,11 @@ test("rejects invalid YAML, unknown metadata and oversized files", () => {
   expect(() => parseMarkdownContent(`${publishedArticle}\n${"x".repeat(512 * 1024)}`)).toThrow();
 });
 
+test("rejects published Markdown without a nonblank body", () => {
+  const emptyBody = publishedArticle.replace("# Khởi nguồn\n\nNội dung.\n", " \n\t\n");
+  expect(() => parseMarkdownContent(emptyBody)).toThrow();
+});
+
 test("rejects YAML tags that could create executable values", () => {
   expect(() =>
     parseMarkdownContent(

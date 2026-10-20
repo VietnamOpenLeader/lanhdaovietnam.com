@@ -79,13 +79,64 @@ test("the content migration preserves legacy posts and adds indexed localized ro
   const db = new Database(":memory:");
 
   await applyProjectMigrations(db, { through: 0 });
-  db.run("INSERT INTO posts (title, body) VALUES (?, ?)", ["keep", "unchanged"]);
-  await applyProjectMigrations(db, { after: 0 });
-
-  expect(db.query("SELECT title, body FROM posts").get()).toEqual({
-    title: "keep",
-    body: "unchanged",
+  db.run("INSERT INTO posts (title, body, created_at) VALUES (?, ?, ?)", [
+    "Legacy article",
+    "# Legacy article",
+    "2026-10-19 10:11:12",
+  ]);
+  db.run("INSERT INTO posts (title, body, created_at) VALUES (?, ?, ?)", [
+    "",
+    " \n\t ",
+    "not-a-date",
+  ]);
+  await applyProjectMigrations(db, { after: 0, through: 1 });
+  insertRecord(db, {
+    id: "existing-content",
+    translation_key: "existing-content",
+    slug: "existing-content",
   });
+  await applyProjectMigrations(db, { after: 1 });
+
+  expect(
+    db
+      .query(`
+      SELECT translation_key, locale, slug, kind, title, description,
+        body, status, published_at
+      FROM content_posts WHERE id = 'legacy-post-1'
+    `)
+      .get(),
+  ).toEqual({
+    translation_key: "legacy-post-1",
+    locale: "vi",
+    slug: "legacy-post-1",
+    kind: "article",
+    title: "Legacy article",
+    description: "Imported from legacy posts",
+    body: "# Legacy article",
+    status: "published",
+    published_at: "2026-10-19T10:11:12.000Z",
+  });
+  expect(db.query("SELECT title, body FROM posts").get()).toEqual({
+    title: "Legacy article",
+    body: "# Legacy article",
+  });
+  expect(
+    db
+      .query(`
+      SELECT title, body, status, published_at
+      FROM content_posts WHERE id = 'legacy-post-2'
+    `)
+      .get(),
+  ).toEqual({
+    title: "Legacy post 2",
+    body: "Original body remains in the legacy posts table.",
+    status: "draft",
+    published_at: null,
+  });
+  expect(db.query("SELECT COUNT(*) AS total FROM posts").get()).toEqual({ total: 2 });
+  expect(
+    db.query("SELECT title, body FROM content_posts WHERE id = 'existing-content'").get(),
+  ).toEqual({ title: "Welcome", body: "# Welcome" });
   expect(
     db.query("SELECT name FROM sqlite_master WHERE name = 'content_posts'").get(),
   ).not.toBeNull();
@@ -106,6 +157,7 @@ test("content constraints reject invalid locales, unpublished dates, event order
       location: "Hanoi",
     }),
   ).toThrow();
+  expect(() => insertRecord(db, { body: "  \n\t" })).toThrow();
   expect(() => insertRecord(db, { version: 0 })).toThrow();
 
   db.close();
@@ -121,6 +173,32 @@ test("content keys are unique per locale and translation", async () => {
   db.close();
 });
 
+test("all locales in one translation group keep the same content kind", async () => {
+  const db = await migratedDatabase();
+  insertRecord(db);
+
+  expect(() =>
+    insertRecord(db, {
+      id: "post-2",
+      translation_key: "welcome",
+      locale: "en",
+      slug: "welcome",
+      kind: "news",
+    }),
+  ).toThrow();
+  insertRecord(db, {
+    id: "post-3",
+    translation_key: "welcome",
+    locale: "en",
+    slug: "welcome-en",
+  });
+  expect(() =>
+    db.query("UPDATE content_posts SET kind = 'news' WHERE id = 'post-3'").run(),
+  ).toThrow();
+
+  db.close();
+});
+
 test("public list, kind list, slug lookup, and translations use their indexes", async () => {
   const db = await migratedDatabase();
   const plans = [
@@ -129,6 +207,12 @@ test("public list, kind list, slug lookup, and translations use their indexes", 
       sql: `EXPLAIN QUERY PLAN SELECT id, title, description, kind, published_at
         FROM content_posts WHERE locale = 'vi' AND status = 'published'
         ORDER BY published_at DESC, id DESC LIMIT 20`,
+    },
+    {
+      index: "content_locale_published",
+      sql: `EXPLAIN QUERY PLAN SELECT slug
+        FROM content_posts WHERE locale = 'vi' AND status = 'published'
+        ORDER BY published_at DESC, id DESC LIMIT 10000 OFFSET 20000`,
     },
     {
       index: "content_locale_kind_published",

@@ -40,6 +40,10 @@ export const contentPosts = sqliteTable(
     check("content_title_nonempty", sql`length(${table.title}) BETWEEN 1 AND 200`),
     check("content_description_nonempty", sql`length(${table.description}) BETWEEN 1 AND 500`),
     check("content_body_size", sql`length(CAST(${table.body} AS BLOB)) <= 204800`),
+    check(
+      "content_body_nonempty",
+      sql`length(trim(${table.body}, char(9, 10, 11, 12, 13, 32))) > 0`,
+    ),
     check("content_version_positive", sql`${table.version} > 0`),
     check(
       "content_published_has_date",

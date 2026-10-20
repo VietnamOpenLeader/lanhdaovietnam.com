@@ -14,9 +14,12 @@ test("rejects invalid locale, slug, published date and text limits", () => {
     { locale: "cn" },
     { slug: "../secret" },
     { status: "published", publishedAt: null },
+    { publishedAt: "2099-01-01T00:00:00.000Z" },
     { title: "" },
     { title: "x".repeat(201) },
     { publishedAt: "not-a-date" },
+    { body: "" },
+    { body: " \n\t " },
     { body: "你".repeat(Math.ceil(maxBodyBytes / 3)) },
   ]) {
     expect(() => decode({ ...publishedPost, ...patch })).toThrow();

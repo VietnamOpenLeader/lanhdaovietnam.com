@@ -1,7 +1,7 @@
 import { Data, Schema } from "effect";
 import matter from "gray-matter";
 import { isAlias, isMap, isPair, isScalar, isSeq, parseDocument, type Node, type Pair } from "yaml";
-import { contentMetadataSchema, type ContentMetadata } from "./contracts";
+import { contentBodySchema, contentMetadataSchema, type ContentMetadata } from "./contracts";
 
 const maxYamlAliasCount = 20;
 export const maxMarkdownSourceBytes = 256 * 1024;
@@ -97,6 +97,14 @@ function decodeMetadata(input: object): ContentMetadata {
   }
 }
 
+function decodeBody(body: string): string {
+  try {
+    return Schema.decodeUnknownSync(contentBodySchema)(body);
+  } catch {
+    throw new MarkdownFrontmatterError({ code: "INVALID_FRONTMATTER" });
+  }
+}
+
 function removeOpeningLineBreak(body: string): string {
   return body.replace(/^(?:\r?\n)+/u, "");
 }
@@ -108,6 +116,6 @@ export function parseMarkdownContent(source: string): ParsedMarkdownContent {
   const parsed = parseFrontmatter(source);
   return {
     metadata: decodeMetadata(parsed.data),
-    body: removeOpeningLineBreak(parsed.content),
+    body: decodeBody(removeOpeningLineBreak(parsed.content)),
   };
 }

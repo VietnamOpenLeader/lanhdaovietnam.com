@@ -57,6 +57,13 @@ function validateMetadata(value: Metadata): string | undefined {
   if (value.status === "published" && value.publishedAt === null) {
     return "Published content requires publishedAt";
   }
+  if (
+    value.status === "published" &&
+    value.publishedAt !== null &&
+    value.publishedAt > new Date().toISOString()
+  ) {
+    return "Published content cannot be scheduled in the future";
+  }
   if (value.kind !== "event") {
     return value.startsAt === null && value.endsAt === null && value.location === null
       ? undefined
@@ -75,15 +82,19 @@ const metadataShape = Schema.Struct(metadataFields);
 const strictParseOptions = { onExcessProperty: "error" } as const;
 
 export const contentMetadataSchema = metadataShape.check(Schema.makeFilter(validateMetadata));
+export const contentBodySchema = Schema.String.check(
+  Schema.makeFilter((body) =>
+    body.trim().length > 0 ? undefined : "Content body must not be blank",
+  ),
+  Schema.makeFilter((body) =>
+    new TextEncoder().encode(body).byteLength <= maxBodyBytes
+      ? undefined
+      : `Body exceeds ${maxBodyBytes} bytes`,
+  ),
+);
 export const contentInputSchema = Schema.Struct({
   ...metadataFields,
-  body: Schema.String.check(
-    Schema.makeFilter((body) =>
-      new TextEncoder().encode(body).byteLength <= maxBodyBytes
-        ? undefined
-        : `Body exceeds ${maxBodyBytes} bytes`,
-    ),
-  ),
+  body: contentBodySchema,
 }).check(Schema.makeFilter(validateMetadata));
 
 export type ContentInput = Schema.Schema.Type<typeof contentInputSchema>;
@@ -91,13 +102,7 @@ export type ContentMetadata = Schema.Schema.Type<typeof contentMetadataSchema>;
 
 export const updateContentSchema = Schema.Struct({
   ...metadataFields,
-  body: Schema.String.check(
-    Schema.makeFilter((body) =>
-      new TextEncoder().encode(body).byteLength <= maxBodyBytes
-        ? undefined
-        : `Body exceeds ${maxBodyBytes} bytes`,
-    ),
-  ),
+  body: contentBodySchema,
   version: Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)),
 }).check(Schema.makeFilter((value) => validateMetadata(value)));
 
@@ -117,7 +122,7 @@ export const contentInputStandardSchema = Schema.toStandardSchemaV1(contentInput
 });
 
 export const contentCheckCandidateSchema = Schema.Struct({
-  entries: Schema.Array(contentMetadataSchema).check(Schema.isMaxLength(500)),
+  entries: Schema.Array(contentMetadataSchema).check(Schema.isMaxLength(100)),
 });
 
 export const contentCheckResultSchema = Schema.Struct({
