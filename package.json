@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "typecheck": "void prepare && bun run i18n:compile && tsc --noEmit",
+    "typecheck": "void prepare && bun run i18n:compile && bun --check",
     "test:api": "bun scripts/test-local.ts api",
     "test:cli": "bun scripts/test-local.ts cli",
     "test:e2e": "bun scripts/test-local.ts e2e",
