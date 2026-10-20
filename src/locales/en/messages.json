@@ -51,6 +51,19 @@
     ],
     "translation": "You are signed in."
   },
+  "content.eventStartsAt": {
+    "message": "Bắt đầu",
+    "placeholders": {},
+    "comments": [
+      "Nhãn thời gian bắt đầu sự kiện."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Starts"
+  },
   "language.unavailable": {
     "message": "Chưa có bản dịch cho ngôn ngữ này.",
     "placeholders": {},
@@ -194,6 +207,19 @@
     ],
     "translation": "Honoring our roots and shaping the future."
   },
+  "content.eventLocation": {
+    "message": "Địa điểm",
+    "placeholders": {},
+    "comments": [
+      "Nhãn địa điểm tổ chức sự kiện."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Location"
+  },
   "content.readMore": {
     "message": "Đọc tiếp",
     "placeholders": {},
@@ -245,6 +271,19 @@
       ]
     ],
     "translation": "Or continue with"
+  },
+  "content.eventEndsAt": {
+    "message": "Kết thúc",
+    "placeholders": {},
+    "comments": [
+      "Nhãn thời gian kết thúc sự kiện."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Ends"
   },
   "auth.error": {
     "message": "Không thể xử lý yêu cầu. Vui lòng thử lại.",

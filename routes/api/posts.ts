@@ -4,6 +4,7 @@ import { requireContentAdmin } from "../../src/auth/admin.server";
 import { listCatalog } from "../../src/content/catalog.server";
 import { ContentError } from "../../src/core/errors";
 import { createContent, listContent } from "../../src/content/programs.server";
+import { hasMarkdownTranslationKey } from "../../src/content/manifest.server";
 import { runContentProgram } from "../../src/content/run.server";
 import { parseContentInput, parseContentListQuery } from "../../src/content/validation.server";
 import { contentErrorResponse } from "../../src/http/content-errors.server";
@@ -39,6 +40,9 @@ export const POST = defineHandler(async (context) => {
   try {
     await Effect.runPromise(requireContentAdmin(context));
     const input = parseContentInput(await readJsonBody(context.req.raw));
+    if (hasMarkdownTranslationKey(input.translationKey)) {
+      throw new ContentError({ status: 409, code: "CONFLICT" });
+    }
     const data = await runContentProgram(createContent(input));
     return context.json({ data }, 201);
   } catch (error) {

@@ -7,10 +7,12 @@ import {
   filterArticles,
   filterEvents,
   filterNews,
+  eventStartsAt,
   nextPage,
 } from "../i18n/messages";
 import type { ContentKind, Locale } from "../content/contracts";
 import type { ContentSummary } from "../content/pagination";
+import ContentDate from "./ContentDate";
 
 interface ContentListProps {
   readonly locale: Locale;
@@ -75,6 +77,11 @@ export default function ContentList({
               </p>
               <h3 className="mt-2 text-lg font-semibold">{item.title}</h3>
               <p className="mt-2 text-sm">{item.description}</p>
+              {item.kind === "event" && item.startsAt ? (
+                <p className="mt-2 text-sm">
+                  {_(eventStartsAt)}: <ContentDate locale={locale} value={item.startsAt} />
+                </p>
+              ) : null}
               <a
                 className="mt-4 inline-block text-sm font-medium underline-offset-4 hover:underline"
                 href={item.url}

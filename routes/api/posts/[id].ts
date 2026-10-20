@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { defineHandler } from "void";
 import { requireContentAdmin } from "../../../src/auth/admin.server";
 import { ContentError } from "../../../src/core/errors";
+import { hasMarkdownTranslationKey } from "../../../src/content/manifest.server";
 import {
   getContent,
   removeContent,
@@ -41,6 +42,9 @@ export const PUT = defineHandler(async (context) => {
     const { input, version } = parseVersionedContentInput(
       await readJsonBody(context.req.raw),
     );
+    if (hasMarkdownTranslationKey(input.translationKey)) {
+      throw new ContentError({ status: 409, code: "CONFLICT" });
+    }
     const data = await runContentProgram(
       replaceContent(readContentId(context.req.param("id")), input, version),
     );

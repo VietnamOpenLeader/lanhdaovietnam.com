@@ -197,3 +197,21 @@ export const contentReadMore: MessageDescriptor = /** i18n */ {
   message: "Đọc tiếp",
   comment: "Liên kết mở bài viết đầy đủ.",
 };
+
+export const eventStartsAt: MessageDescriptor = /** i18n */ {
+  id: "content.eventStartsAt",
+  message: "Bắt đầu",
+  comment: "Nhãn thời gian bắt đầu sự kiện.",
+};
+
+export const eventEndsAt: MessageDescriptor = /** i18n */ {
+  id: "content.eventEndsAt",
+  message: "Kết thúc",
+  comment: "Nhãn thời gian kết thúc sự kiện.",
+};
+
+export const eventLocation: MessageDescriptor = /** i18n */ {
+  id: "content.eventLocation",
+  message: "Địa điểm",
+  comment: "Nhãn địa điểm tổ chức sự kiện.",
+};

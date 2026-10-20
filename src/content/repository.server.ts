@@ -1,5 +1,5 @@
 import { Context, Effect } from "effect";
-import { and, desc, eq, lt, lte, or, sql } from "void/db";
+import { and, desc, eq, inArray, lt, lte, or, sql } from "void/db";
 import { contentPosts } from "@schema";
 import { ContentError } from "../core/errors";
 import type { ContentInput, ContentKind, Locale } from "./contracts";
@@ -41,6 +41,9 @@ export interface ContentRepositoryShape {
   readonly listPublishedTranslations: (
     translationKey: string,
   ) => Effect.Effect<ReadonlyArray<ContentMetadataRecord>, ContentError>;
+  readonly findPublishedForTranslationKeys: (
+    keys: ReadonlyArray<string>,
+  ) => Effect.Effect<ReadonlyArray<{ readonly translationKey: string; readonly locale: Locale }>, ContentError>;
   readonly create: (input: ContentInput) => Effect.Effect<ContentRecord, ContentError>;
   readonly replace: (
     id: string,
@@ -164,6 +167,20 @@ function makeRepository(database: typeof import("void/db").db): ContentRepositor
           ))
           .orderBy(desc(contentPosts.locale)),
       ),
+    findPublishedForTranslationKeys: (keys) => {
+      if (keys.length === 0) return Effect.succeed([]);
+      return databaseEffect(() =>
+        database.select({
+          translationKey: contentPosts.translationKey,
+          locale: contentPosts.locale,
+        })
+          .from(contentPosts)
+          .where(and(
+            inArray(contentPosts.translationKey, [...keys]),
+            eq(contentPosts.status, "published"),
+          )),
+      );
+    },
     create: (input) =>
       databaseEffect(async () => {
         const now = new Date().toISOString();

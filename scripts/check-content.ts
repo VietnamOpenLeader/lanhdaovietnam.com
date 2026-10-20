@@ -7,7 +7,10 @@ import {
   maxMarkdownSourceBytes,
   parseMarkdownContent,
 } from "../src/content/frontmatter";
-import { buildMarkdownIndex } from "../src/content/markdown";
+import {
+  buildMarkdownIndex,
+  type PublishedMarkdownEntry,
+} from "../src/content/markdown";
 import type { ContentMetadata } from "../src/content/contracts";
 
 const pagesRoot = join(import.meta.dir, "..", "pages");
@@ -61,24 +64,30 @@ function collectPublishedPages(): VoidMdPage[] {
   });
 }
 
-function main(): void {
+export function scanLocalContent(): ReadonlyArray<PublishedMarkdownEntry> {
   const files = contentFolders.flatMap((folder) => collectMarkdownFiles(join(pagesRoot, folder)));
   if (files.length === 0) {
     throw new Error("No published Markdown files found under localized library folders");
   }
-  const index = buildMarkdownIndex(collectPublishedPages());
+  return buildMarkdownIndex(collectPublishedPages());
+}
+
+function main(): void {
+  const index = scanLocalContent();
   console.log(`Validated ${index.length} published Markdown page(s).`);
 }
 
-try {
-  main();
-} catch (error) {
-  if (error instanceof ContentError) {
-    console.error(`Content validation failed: ${error.code}`, error.fields ?? {});
-  } else if (error instanceof Error) {
-    console.error(`Content validation failed: ${error.message}`);
-  } else {
-    console.error("Content validation failed: Unknown error");
+if (import.meta.main) {
+  try {
+    main();
+  } catch (error) {
+    if (error instanceof ContentError) {
+      console.error(`Content validation failed: ${error.code}`, error.fields ?? {});
+    } else if (error instanceof Error) {
+      console.error(`Content validation failed: ${error.message}`);
+    } else {
+      console.error("Content validation failed: Unknown error");
+    }
+    process.exitCode = 1;
   }
-  process.exitCode = 1;
 }

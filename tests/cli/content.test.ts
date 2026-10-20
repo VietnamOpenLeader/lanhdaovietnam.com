@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Schema } from "effect";
-import { adminToken, baseURL } from "../local-context";
+import { adminToken, baseURL, contentCheckToken } from "../local-context";
 import { publishedPost } from "../fixtures/content";
 
 const createdSchema = Schema.Struct({
@@ -146,6 +146,13 @@ publishedAt: 2026-10-19T00:00:00.000Z
 
     const apiCheck = await runCLI(["check", "--api"]);
     expect(apiCheck.exitCode).toBe(0);
+
+    const readOnlyApiCheck = await runCLI(["check", "--api"], {
+      CONTENT_API_TOKEN: "",
+      CONTENT_CHECK_TOKEN: contentCheckToken,
+    });
+    expect(readOnlyApiCheck.exitCode).toBe(0);
+    expect(readOnlyApiCheck.stdout).toContain('"candidateCount":3');
 
     const wrongToken = "A".repeat(43);
     const unauthorized = await runCLI(["list", "--locale", "vi", "--admin"], {

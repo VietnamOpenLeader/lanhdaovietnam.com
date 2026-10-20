@@ -3,7 +3,11 @@ import type { CloudContext } from "void";
 import { getUser } from "void/auth";
 import { env } from "void/env";
 import type { ContentError } from "../core/errors";
-import { authorizeContentAdmin, type AdminIdentity } from "./policy";
+import {
+  authorizeContentAdmin,
+  authorizeContentChecker,
+  type AdminIdentity,
+} from "./policy";
 import {
   configuredSocialProviderNames,
   socialCredentials,
@@ -46,6 +50,27 @@ export function requireContentAdmin(
     {
       adminUserIds: env.ADMIN_USER_IDS,
       tokenSha256: env.CONTENT_API_TOKEN_SHA256,
+    },
+  );
+}
+
+export function requireContentChecker(
+  context: CloudContext,
+): Effect.Effect<AdminIdentity, ContentError> {
+  const authorization = context.req.header("Authorization");
+  const userId = authorization === undefined ? getUser()?.id ?? null : null;
+  return authorizeContentChecker(
+    {
+      userId,
+      authorization,
+      method: context.req.method,
+      origin: context.req.header("Origin"),
+      expectedOrigin: new URL(context.req.url).origin,
+    },
+    {
+      adminUserIds: env.ADMIN_USER_IDS,
+      tokenSha256: env.CONTENT_API_TOKEN_SHA256,
+      readOnlyTokenSha256: env.CONTENT_CHECK_TOKEN_SHA256,
     },
   );
 }

@@ -13,3 +13,11 @@ if (!testAdminToken) {
 }
 
 export const adminToken: string = testAdminToken;
+
+const testContentCheckToken = process.env.TEST_CONTENT_CHECK_TOKEN;
+
+if (!testContentCheckToken) {
+  throw new Error("TEST_CONTENT_CHECK_TOKEN must be set by scripts/test-local.ts");
+}
+
+export const contentCheckToken: string = testContentCheckToken;

@@ -33,6 +33,12 @@ export const listPublishedTranslations = (translationKey: string) =>
     return yield* repository.listPublishedTranslations(translationKey);
   });
 
+export const findPublishedForTranslationKeys = (keys: ReadonlyArray<string>) =>
+  Effect.gen(function*() {
+    const repository = yield* ContentRepository;
+    return yield* repository.findPublishedForTranslationKeys(keys);
+  });
+
 export const getContent = (id: string) =>
   Effect.gen(function*() {
     const repository = yield* ContentRepository;

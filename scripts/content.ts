@@ -7,7 +7,13 @@ import {
   updateContentSchema,
 } from "../src/content/contracts";
 import { parseMarkdownContent } from "../src/content/frontmatter";
+import {
+  contentCheckResultSchema,
+  type ContentCheckResult,
+  type ContentMetadata,
+} from "../src/content/contracts";
 import { ContentApiFailure, createContentClient } from "./content-client";
+import { scanLocalContent } from "./check-content";
 
 interface ContentCLIIO {
   readonly stdout: (text: string) => void;
@@ -191,10 +197,11 @@ function printJSON(io: ContentCLIIO, value: unknown): void {
 function buildClient(
   env: Readonly<Record<string, string | undefined>>,
   tokenRequired: boolean,
+  tokenValue = env.CONTENT_API_TOKEN,
 ) {
   const baseURL = env.CONTENT_API_URL;
   if (!baseURL) return failArguments("CONTENT_API_URL is required.");
-  const token = tokenRequired ? assertToken(env.CONTENT_API_TOKEN) : env.CONTENT_API_TOKEN;
+  const token = tokenRequired ? assertToken(tokenValue) : tokenValue;
   try {
     return createContentClient({ baseURL, ...(token ? { token } : {}) });
   } catch {
@@ -326,11 +333,82 @@ async function runCheck(
 ): Promise<void> {
   assertPositionals(args.positionals, 0);
   assertAllowedOptions(args.values, ["api"]);
-  if (args.values.api) {
-    const client = buildClient(env, false);
-    await client.request("/api/posts?locale=vi&limit=1");
+  const entries = scanLocalContent().map(projectContentMetadata);
+  if (!args.values.api) {
+    printJSON(io, { ok: true, candidateCount: entries.length });
+    return;
   }
-  printJSON(io, { ok: true, api: args.values.api === true });
+
+  const client = buildClient(
+    env,
+    true,
+    env.CONTENT_CHECK_TOKEN ?? env.CONTENT_API_TOKEN,
+  );
+  const deployedCheck = decodeContentCheckResult(
+    await client.request("/api/content-check"),
+  );
+  const candidateBatches = splitCandidates(entries);
+  const candidateChecks = await Promise.all(candidateBatches.map(async (batch) =>
+    decodeContentCheckResult(await client.request("/api/content-check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entries: batch }),
+    }))
+  ));
+  const candidateConflictKeys = [
+    ...new Set(candidateChecks.flatMap((result) => result.conflictKeys)),
+  ];
+  const isClean = deployedCheck.conflictKeys.length === 0 && candidateConflictKeys.length === 0;
+  printJSON(io, {
+    ok: isClean,
+    candidateCount: entries.length,
+    deployed: deployedCheck,
+    candidate: {
+      checkedCount: candidateChecks.reduce((count, result) => count + result.checkedCount, 0),
+      conflictKeys: candidateConflictKeys,
+    },
+  });
+  if (!isClean) {
+    throw new ContentCLIFailure({ exitCode: 1, message: "Content conflicts were found." });
+  }
+}
+
+function projectContentMetadata(entry: ReturnType<typeof scanLocalContent>[number]): ContentMetadata {
+  return {
+    translationKey: entry.translationKey,
+    locale: entry.locale,
+    slug: entry.slug,
+    kind: entry.kind,
+    title: entry.title,
+    description: entry.description,
+    status: entry.status,
+    publishedAt: entry.publishedAt,
+    startsAt: entry.startsAt,
+    endsAt: entry.endsAt,
+    location: entry.location,
+  };
+}
+
+function splitCandidates(entries: ReadonlyArray<ContentMetadata>): ContentMetadata[][] {
+  const batchSize = 500;
+  const batches: ContentMetadata[][] = [];
+  for (let offset = 0; offset < entries.length; offset += batchSize) {
+    batches.push(entries.slice(offset, offset + batchSize));
+  }
+  return batches;
+}
+
+function decodeContentCheckResult(value: unknown): ContentCheckResult {
+  try {
+    return Schema.decodeUnknownSync(contentCheckResultSchema, {
+      onExcessProperty: "error",
+    })(value);
+  } catch {
+    throw new ContentCLIFailure({
+      exitCode: 1,
+      message: "Content API returned an invalid preflight response.",
+    });
+  }
 }
 
 async function executeCommand(

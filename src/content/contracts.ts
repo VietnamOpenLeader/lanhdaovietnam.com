@@ -113,3 +113,15 @@ export const contentQuerySchema = Schema.Struct({
 export const contentInputStandardSchema = Schema.toStandardSchemaV1(contentInputSchema, {
   parseOptions: strictParseOptions,
 });
+
+export const contentCheckCandidateSchema = Schema.Struct({
+  entries: Schema.Array(contentMetadataSchema).check(Schema.isMaxLength(500)),
+});
+
+export const contentCheckResultSchema = Schema.Struct({
+  checkedCount: Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
+  conflictKeys: Schema.Array(Schema.String),
+});
+
+export type ContentCheckCandidate = Schema.Schema.Type<typeof contentCheckCandidateSchema>;
+export type ContentCheckResult = Schema.Schema.Type<typeof contentCheckResultSchema>;

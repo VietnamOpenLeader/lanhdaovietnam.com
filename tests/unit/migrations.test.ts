@@ -152,6 +152,11 @@ test("public list, kind list, slug lookup, and translations use their indexes", 
       sql: `EXPLAIN QUERY PLAN SELECT locale, slug FROM content_posts
         WHERE translation_key = 'welcome' AND status = 'published'`,
     },
+    {
+      index: "content_translations",
+      sql: `EXPLAIN QUERY PLAN SELECT translation_key, locale FROM content_posts
+        WHERE translation_key IN ('welcome', 'another-key') AND status = 'published'`,
+    },
   ];
 
   for (const plan of plans) {

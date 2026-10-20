@@ -15,6 +15,10 @@ export interface AdminPolicy {
   readonly tokenSha256?: string;
 }
 
+export interface ContentCheckPolicy extends AdminPolicy {
+  readonly readOnlyTokenSha256?: string;
+}
+
 export interface AdminRequest {
   readonly userId?: string | null;
   readonly authorization?: string;
@@ -51,28 +55,26 @@ function sameDigest(left: Uint8Array, right: Uint8Array): boolean {
 
 function authorizeBearer(
   authorization: string,
-  expectedDigest: string | undefined,
+  expectedDigests: ReadonlyArray<string | undefined>,
 ): Effect.Effect<AdminIdentity, ContentError> {
   const token = bearerTokenPattern.exec(authorization)?.[1];
-  const expected = decodeExpectedDigest(expectedDigest);
-  if (!token || !expected || expected.length !== 32) return fail(401);
+  const expected = expectedDigests
+    .map(decodeExpectedDigest)
+    .filter((digest): digest is Uint8Array => digest !== null && digest.length === 32);
+  if (!token || expected.length === 0) return fail(401);
   return hashToken(token).pipe(
     Effect.flatMap((candidate) =>
-      sameDigest(candidate, expected)
+      expected.reduce((matched, digest) => sameDigest(candidate, digest) || matched, false)
         ? Effect.succeed({ kind: "token" } as const)
         : fail(401)
     ),
   );
 }
 
-export function authorizeContentAdmin(
+function authorizeSession(
   request: AdminRequest,
   policy: AdminPolicy,
 ): Effect.Effect<AdminIdentity, ContentError> {
-  if (request.authorization !== undefined) {
-    return authorizeBearer(request.authorization, policy.tokenSha256);
-  }
-
   if (!request.userId) return fail(401);
   if (!policy.adminUserIds.includes(request.userId)) return fail(403);
   if (mutatingMethods.has(request.method)
@@ -80,4 +82,27 @@ export function authorizeContentAdmin(
     return fail(403);
   }
   return Effect.succeed({ kind: "session", userId: request.userId });
+}
+
+export function authorizeContentAdmin(
+  request: AdminRequest,
+  policy: AdminPolicy,
+): Effect.Effect<AdminIdentity, ContentError> {
+  if (request.authorization !== undefined) {
+    return authorizeBearer(request.authorization, [policy.tokenSha256]);
+  }
+  return authorizeSession(request, policy);
+}
+
+export function authorizeContentChecker(
+  request: AdminRequest,
+  policy: ContentCheckPolicy,
+): Effect.Effect<AdminIdentity, ContentError> {
+  if (request.authorization !== undefined) {
+    return authorizeBearer(request.authorization, [
+      policy.tokenSha256,
+      policy.readOnlyTokenSha256,
+    ]);
+  }
+  return authorizeSession(request, policy);
 }

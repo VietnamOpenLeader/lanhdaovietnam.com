@@ -22,6 +22,9 @@ function summary(
     title: key,
     description: key,
     publishedAt,
+    startsAt: null,
+    endsAt: null,
+    location: null,
     url: `/${locale}/posts/${key}`,
   };
 }

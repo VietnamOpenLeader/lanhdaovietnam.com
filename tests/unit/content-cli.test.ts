@@ -53,3 +53,15 @@ test("content client rejects remote HTTP origins before transport", () => {
   })).toThrow();
   expect(fetchCalled).toBe(false);
 });
+
+test("offline content check validates and counts the local Markdown manifest", async () => {
+  const output: string[] = [];
+  const code = await runContentCLI(
+    ["check"],
+    { stdout: (text) => output.push(text), stderr: () => {} },
+    {},
+  );
+
+  expect(code).toBe(0);
+  expect(JSON.parse(output.join(""))).toEqual({ ok: true, candidateCount: 3 });
+});

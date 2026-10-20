@@ -16,6 +16,9 @@ export interface ContentSummary {
   readonly title: string;
   readonly description: string;
   readonly publishedAt: string;
+  readonly startsAt: string | null;
+  readonly endsAt: string | null;
+  readonly location: string | null;
   readonly url: string;
 }
 

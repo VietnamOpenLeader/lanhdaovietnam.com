@@ -35,7 +35,7 @@ test("content CRUD requires admin credentials and rejects stale versions", async
 
   const unauthorized = await fetch(url, {
     method: "POST",
-    headers: { ...adminHeaders(), Authorization: "Bearer invalid" },
+    headers: { ...adminHeaders(), Authorization: `Bearer ${"A".repeat(43)}` },
     body: JSON.stringify(payload),
   });
   expect(unauthorized.status).toBe(401);
@@ -165,6 +165,50 @@ test("concurrent creates for the same locale and slug yield one conflict", async
   });
   const responses = await Promise.all([create(), create()]);
   expect(responses.map(({ status }) => status).sort()).toEqual([201, 409]);
+});
+
+test("D1 cannot take ownership of a Markdown translation key", async () => {
+  const key = `d1-${crypto.randomUUID()}`;
+  const original = await fetch(`${baseURL}/api/posts`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({ ...publishedPost, translationKey: key, slug: key }),
+  });
+  expect(original.status).toBe(201);
+  const record = readRecord(await original.json());
+
+  try {
+    const update = await fetch(`${baseURL}/api/posts/${record.id}`, {
+      method: "PUT",
+      headers: adminHeaders(),
+      body: JSON.stringify({
+        ...publishedPost,
+        translationKey: "origins",
+        slug: `duplicate-origin-${crypto.randomUUID()}`,
+        version: record.version,
+      }),
+    });
+    expect(update.status).toBe(409);
+    expect(await update.text()).not.toContain("SQL");
+
+    const create = await fetch(`${baseURL}/api/posts`, {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({
+        ...publishedPost,
+        translationKey: "origins",
+        slug: `duplicate-create-${crypto.randomUUID()}`,
+      }),
+    });
+    expect(create.status).toBe(409);
+    expect(await create.text()).not.toContain("SQL");
+  } finally {
+    await fetch(`${baseURL}/api/posts/${record.id}`, {
+      method: "DELETE",
+      headers: adminHeaders(),
+      body: JSON.stringify({ version: record.version }),
+    });
+  }
 });
 
 test("content endpoints reject malformed JSON and invalid payloads", async () => {

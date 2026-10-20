@@ -132,6 +132,9 @@ export function markdownSummary(entry: PublishedMarkdownEntry): ContentSummary {
     title: entry.title,
     description: entry.description,
     publishedAt: entry.publishedAt,
+    startsAt: entry.startsAt,
+    endsAt: entry.endsAt,
+    location: entry.location,
     url: entry.url,
   };
 }

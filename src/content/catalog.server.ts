@@ -81,6 +81,9 @@ function toD1Summary(
     title: record.title,
     description: record.description,
     publishedAt: record.publishedAt,
+    startsAt: record.startsAt,
+    endsAt: record.endsAt,
+    location: record.location,
     url: `/${record.locale}/posts/${record.slug}`,
   };
 }
