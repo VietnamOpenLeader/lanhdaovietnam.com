@@ -33,11 +33,12 @@ export function getConfiguredSocialProviders(): ReadonlyArray<SocialProvider> {
 export function requireContentAdmin(
   context: CloudContext,
 ): Effect.Effect<AdminIdentity, ContentError> {
-  const user = getUser();
+  const authorization = context.req.header("Authorization");
+  const userId = authorization === undefined ? getUser()?.id ?? null : null;
   return authorizeContentAdmin(
     {
-      userId: user?.id ?? null,
-      authorization: context.req.header("Authorization"),
+      userId,
+      authorization,
       method: context.req.method,
       origin: context.req.header("Origin"),
       expectedOrigin: new URL(context.req.url).origin,

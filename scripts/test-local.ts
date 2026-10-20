@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { cpSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
 import { createServer } from "node:net";
 import { join, relative, resolve } from "node:path";
@@ -57,11 +57,17 @@ function copyProject(projectRoot: string): void {
   symlinkSync(join(sourceRoot, "node_modules"), join(projectRoot, "node_modules"));
 }
 
-function testEnvironment(baseURL: string, projectRoot: string): Record<string, string> {
+function testEnvironment(
+  baseURL: string,
+  projectRoot: string,
+  adminToken: string,
+): Record<string, string> {
   const environment: Record<string, string> = {
     TEST_BASE_URL: baseURL,
+    TEST_ADMIN_TOKEN: adminToken,
     TEST_PROJECT_DIR: projectRoot,
     ADMIN_USER_IDS: "[]",
+    CONTENT_API_TOKEN_SHA256: createHash("sha256").update(adminToken).digest("hex"),
   };
   for (const key of ["PATH", "HOME", "TMPDIR", "TEMP", "SHELL", "LANG", "TERM"]) {
     const value = process.env[key];
@@ -96,7 +102,12 @@ async function stopServer(server: ReturnType<typeof spawn>): Promise<void> {
   await closed;
 }
 
-async function runSuite(projectRoot: string, baseURL: string, suite: string): Promise<number> {
+async function runSuite(
+  projectRoot: string,
+  baseURL: string,
+  suite: string,
+  adminToken: string,
+): Promise<number> {
   const testPath = {
     api: "tests/integration",
     cli: "tests/cli",
@@ -108,7 +119,7 @@ async function runSuite(projectRoot: string, baseURL: string, suite: string): Pr
     ["test", testPath],
     {
       cwd: projectRoot,
-      env: testEnvironment(baseURL, projectRoot),
+      env: testEnvironment(baseURL, projectRoot, adminToken),
       stdio: "inherit",
     },
   );
@@ -127,6 +138,7 @@ async function main(): Promise<void> {
   const projectRoot = join(scratchRoot, randomUUID());
   const port = await getFreePort();
   const baseURL = `http://127.0.0.1:${port}`;
+  const adminToken = `${randomUUID()}${randomUUID()}`;
   mkdirSync(scratchRoot, { recursive: true });
   copyProject(projectRoot);
 
@@ -135,13 +147,13 @@ async function main(): Promise<void> {
     ["--host", "127.0.0.1", "--port", String(port), "--strictPort"],
     {
       cwd: projectRoot,
-      env: testEnvironment(baseURL, projectRoot),
+      env: testEnvironment(baseURL, projectRoot, adminToken),
       stdio: "inherit",
     },
   );
   try {
     await waitUntilServerIsReady(server, baseURL);
-    const exitCode = await runSuite(projectRoot, baseURL, suite);
+    const exitCode = await runSuite(projectRoot, baseURL, suite, adminToken);
     if (exitCode !== 0) throw new Error(`Test suite "${suite}" failed with exit code ${exitCode}`);
     await stopServer(server);
     rmSync(projectRoot, { recursive: true, force: true });

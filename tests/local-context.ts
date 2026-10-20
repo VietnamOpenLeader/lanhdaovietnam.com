@@ -5,3 +5,11 @@ if (!testBaseURL) {
 }
 
 export const baseURL: string = testBaseURL;
+
+const testAdminToken = process.env.TEST_ADMIN_TOKEN;
+
+if (!testAdminToken) {
+  throw new Error("TEST_ADMIN_TOKEN must be set by scripts/test-local.ts");
+}
+
+export const adminToken: string = testAdminToken;

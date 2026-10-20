@@ -438,7 +438,7 @@ Tạo `tests/migration-fixture.ts`: `applyProjectMigrations(db, range)` đọc j
 - `DELETE /api/posts/:id` requires JSON `{version}`, returns `204`.
 - Error envelope `{error:{code:string,message:string,fields?:Record<string,string>}}`; validation 422, malformed JSON/cursor 400, missing 404, uniqueness/version 409, oversized 413.
 
-- [ ] **6.1 — RED API test:**
+- [x] **6.1 — RED API test:**
 
 ```ts
 import { expect, test } from "bun:test";
@@ -472,9 +472,9 @@ test("CRUD từ chối unauth và cập nhật stale version", async () => {
 });
 ```
 
-- [ ] **6.2 — Atomic write:** create dùng unique constraints làm authority; update `WHERE id=? AND version=?`, increment version trong cùng SQL, dùng `.returning()`. Không read-then-unconditional-write. Missing/stale được phân biệt sau conditional update; delete cũng version-checked. Repository thực hiện query Promise qua `Effect.tryPromise` và map SQL constraint errors thành tagged ContentError.
-- [ ] **6.3 — Routes:** handler là ranh giới duy nhất gọi `Effect.runPromise` trên Effect program; service/repository không gọi nó. Dùng `defineHandler` và `void/db` typed APIs, không cast `any`; cap stream bytes kể cả thiếu/sai Content-Length trước JSON parse. Authenticate mutations trước trả thông tin tài nguyên. Project metadata bằng select fields, không `.select()` toàn body cho list. Không xây `ManagedRuntime` global chứa binding có request scope.
-- [ ] **6.4 — Safe HTML test:**
+- [x] **6.2 — Atomic write:** create dùng unique constraints làm authority; update `WHERE id=? AND version=?`, increment version trong cùng SQL, dùng `.returning()`. Không read-then-unconditional-write. Missing/stale được phân biệt sau conditional update; delete cũng version-checked. Repository thực hiện query Promise qua `Effect.tryPromise` và map SQL constraint errors thành tagged ContentError.
+- [x] **6.3 — Routes:** handler là ranh giới duy nhất gọi `Effect.runPromise` trên Effect program; service/repository không gọi nó. Dùng `defineHandler` và `void/db` typed APIs, không cast `any`; cap stream bytes kể cả thiếu/sai Content-Length trước JSON parse. Authenticate mutations trước trả thông tin tài nguyên. Project metadata bằng select fields, không `.select()` toàn body cho list. Không xây `ManagedRuntime` global chứa binding có request scope.
+- [x] **6.4 — Safe HTML test:**
 
 ```ts
 import { expect, test } from "bun:test";
@@ -491,7 +491,7 @@ test("D1 Markdown không thực thi raw HTML hoặc javascript URL", () => {
 
 Giữ URL validation mặc định an toàn của renderer; không thêm unsafe HTML plugin. Nếu cần images, không cho event handler/raw attribute từ Markdown.
 
-- [ ] **6.5 — GREEN:** `bun test tests/unit/render.test.ts`, `bun scripts/test-local.ts api`. Bổ sung duplicate creates song song, published→draft gỡ khỏi public ngay, 401/403, wrong token, missing/large JSON, deleted ID, cross-origin session và không lộ SQL/secret trong error.
+- [x] **6.5 — GREEN:** `bun test tests/unit/render.test.ts`, `bun scripts/test-local.ts api`. Bổ sung duplicate creates song song, published→draft gỡ khỏi public ngay, 401/403, wrong token, missing/large JSON, deleted ID, cross-origin session và không lộ SQL/secret trong error.
 - [ ] **6.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: expose admin-only D1 content CRUD API"`.
 
 ## Task 7 — Danh mục hợp nhất và keyset pagination
