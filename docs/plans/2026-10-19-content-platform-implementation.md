@@ -740,7 +740,7 @@ Mong đợi tất cả exit 0; báo số test thực tế, screenshots/artifacts
 
 Local verification used the installed system Chrome through `PLAYWRIGHT_CHROMIUM_EXECUTABLE`; `bunx playwright install --with-deps chromium` was not run locally. CI runs that exact browser installation step. Live social OAuth callbacks remain NOT RUN because provider credentials were not supplied.
 
-- [ ] **11.9 — Commit:** `GIT_EDITOR=true git commit -m "test: gate localized content workflows and document operations"`.
+- [x] **11.9 — Commit:** `GIT_EDITOR=true git commit -m "test: gate localized content workflows and document operations"`.
 
 ## Coverage matrix và điều kiện hoàn tất
 
