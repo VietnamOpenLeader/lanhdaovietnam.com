@@ -32,3 +32,5 @@ bun run test:e2e
 - Local CLI entry point: `bun run content --help`
 
 Never commit OAuth credentials, API tokens, or token hashes. Production deployment is gated by CI and an authenticated, read-only content conflict check.
+
+`GET /api/posts` now returns the paginated localized catalog envelope (`data`, `nextCursor`) rather than the starter project's raw `posts` array. The additive migration backfills valid legacy rows into Vietnamese articles and keeps the original table unchanged.

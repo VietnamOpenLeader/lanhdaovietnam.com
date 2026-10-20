@@ -5,7 +5,7 @@ on:
 
 concurrency:
   group: void-cloudflare-deploy-${{ github.repository }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -24,6 +24,10 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Run local quality gates
         run: bun run check
+      - name: Install Chromium for browser E2E
+        run: bunx playwright install --with-deps chromium
+      - name: Run desktop and mobile browser E2E
+        run: bun run test:e2e
       - name: Check candidate content against deployed D1
         env:
           CONTENT_API_URL: ${{ vars.CONTENT_API_URL }}

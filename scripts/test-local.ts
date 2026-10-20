@@ -122,11 +122,42 @@ function waitUntilServerIsReady(server: ReturnType<typeof spawn>, baseURL: strin
   return waitForServer(server, baseURL, Date.now() + 30_000);
 }
 
+function waitForServerExit(server: ReturnType<typeof spawn>, timeoutMs: number): Promise<boolean> {
+  if (server.exitCode !== null) return Promise.resolve(true);
+  return new Promise((resolveExit) => {
+    const timeout = setTimeout(() => {
+      server.off("close", onClose);
+      resolveExit(false);
+    }, timeoutMs);
+    const onClose = () => {
+      clearTimeout(timeout);
+      resolveExit(true);
+    };
+    server.once("close", onClose);
+  });
+}
+
+function signalServerTree(server: ReturnType<typeof spawn>, signal: NodeJS.Signals): void {
+  if (server.pid === undefined) return;
+  try {
+    if (process.platform === "win32") server.kill(signal);
+    else process.kill(-server.pid, signal);
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "ESRCH") {
+      return;
+    }
+    throw error;
+  }
+}
+
 async function stopServer(server: ReturnType<typeof spawn>): Promise<void> {
   if (server.exitCode !== null) return;
-  const closed = new Promise<void>((resolveClose) => server.once("close", resolveClose));
-  server.kill("SIGTERM");
-  await closed;
+  signalServerTree(server, "SIGTERM");
+  if (await waitForServerExit(server, 5_000)) return;
+  signalServerTree(server, "SIGKILL");
+  if (!(await waitForServerExit(server, 2_000))) {
+    throw new Error("Test server process tree did not exit after SIGKILL");
+  }
 }
 
 async function runSuite(
@@ -144,14 +175,14 @@ async function runSuite(
   if (!testPath) throw new Error("Expected a test suite: api, cli, or e2e");
   const executable =
     suite === "e2e" ? join(projectRoot, "node_modules/.bin/playwright") : processExecPath();
-  const process = spawn(executable, ["test", testPath], {
+  const child = spawn(executable, ["test", testPath], {
     cwd: projectRoot,
     env: testEnvironment(baseURL, projectRoot, adminToken, contentCheckToken),
     stdio: "inherit",
   });
   return new Promise((resolveExit, reject) => {
-    process.once("error", reject);
-    process.once("close", (code) => resolveExit(code ?? 1));
+    child.once("error", reject);
+    child.once("close", (code) => resolveExit(code ?? 1));
   });
 }
 
@@ -176,22 +207,19 @@ async function main(): Promise<void> {
       cwd: projectRoot,
       env: testEnvironment(baseURL, projectRoot, adminToken, contentCheckToken),
       stdio: "inherit",
+      detached: process.platform !== "win32",
     },
   );
   try {
     await waitUntilServerIsReady(server, baseURL);
     const exitCode = await runSuite(projectRoot, baseURL, suite, adminToken, contentCheckToken);
     if (exitCode !== 0) throw new Error(`Test suite "${suite}" failed with exit code ${exitCode}`);
-    await stopServer(server);
-    rmSync(projectRoot, { recursive: true, force: true });
   } catch (error) {
     await stopServer(server);
     throw error;
-  } finally {
-    if (server.exitCode === null) {
-      await new Promise<void>((resolveExit) => server.once("close", () => resolveExit()));
-    }
   }
+  await stopServer(server);
+  rmSync(projectRoot, { recursive: true, force: true });
 }
 
 await main();

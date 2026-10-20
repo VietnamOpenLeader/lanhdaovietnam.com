@@ -41,7 +41,18 @@ The email provider is local-first; no password reset/verification email workflow
 
 The `void-deploy` GitHub workflow runs local gates, then this preflight, then deploy/migrations. Set GitHub variable `CONTENT_API_URL` and secret `CONTENT_CHECK_TOKEN`. Missing credentials, an unavailable endpoint, or a conflict stops the workflow; there is no silent bypass. The check is **not** a distributed lock: avoid concurrent content writes during a deployment preflight.
 
-For the first deployment, `/api/content-check` does not exist until the Worker is bootstrapped. An operator must approve and perform that initial bootstrap separately; the automatic workflow intentionally cannot skip its preflight.
+For the first deployment, `/api/content-check` does not exist until the Worker is bootstrapped. An operator must approve and perform that initial bootstrap separately because the automatic workflow intentionally cannot skip its preflight:
+
+```sh
+bun install --frozen-lockfile
+bun run ship:gate
+bun run check
+bunx playwright install --with-deps chromium
+bun run test:e2e
+bunx void deploy --platform cloudflare
+```
+
+This one-time bootstrap deploys only after all local gates pass. After it creates `/api/content-check`, the normal workflow requires the read-only remote preflight before every deployment.
 
 ## CI and browser checks
 
