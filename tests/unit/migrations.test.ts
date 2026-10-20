@@ -100,12 +100,19 @@ test("the content migration preserves legacy posts and adds indexed localized ro
     "# Needs date review",
     "not-a-date",
   ]);
+  db.run("INSERT INTO posts (title, body, created_at) VALUES (?, ?, ?)", [
+    "Whitespace body",
+    "\u00a0\u2003\u2028\u2029\ufeff",
+    "2026-10-19 10:11:12",
+  ]);
   await applyProjectMigrations(db, { after: 0, through: 1 });
   insertRecord(db, {
     id: "existing-content",
     translation_key: "existing-content",
     slug: "existing-content",
   });
+  const legacyRowsBeforeRebuild = db.query("SELECT * FROM posts ORDER BY id").all();
+  const contentRowsBeforeRebuild = db.query("SELECT * FROM content_posts ORDER BY id").all();
   await applyProjectMigrations(db, { after: 1 });
 
   expect(
@@ -144,16 +151,135 @@ test("the content migration preserves legacy posts and adds indexed localized ro
     status: "draft",
     published_at: null,
   });
-  expect(db.query("SELECT COUNT(*) AS total FROM posts").get()).toEqual({ total: 3 });
+  expect(db.query("SELECT COUNT(*) AS total FROM posts").get()).toEqual({ total: 4 });
+  expect(db.query("SELECT * FROM posts ORDER BY id").all()).toEqual(legacyRowsBeforeRebuild);
+  expect(db.query("SELECT * FROM content_posts WHERE id = 'existing-content'").all()).toEqual(
+    contentRowsBeforeRebuild,
+  );
   expect(
     db.query("SELECT status, published_at FROM content_posts WHERE id = 'legacy-post-3'").get(),
   ).toEqual({ status: "draft", published_at: null });
+  expect(
+    db
+      .query("SELECT body, status, published_at FROM content_posts WHERE id = 'legacy-post-4'")
+      .get(),
+  ).toEqual({
+    body: "Original body remains in the legacy posts table.",
+    status: "draft",
+    published_at: null,
+  });
   expect(
     db.query("SELECT title, body FROM content_posts WHERE id = 'existing-content'").get(),
   ).toEqual({ title: "Welcome", body: "# Welcome" });
   expect(
     db.query("SELECT name FROM sqlite_master WHERE name = 'content_posts'").get(),
   ).not.toBeNull();
+
+  db.close();
+});
+
+test("legacy timestamps require strict calendar-valid shapes before publication", async () => {
+  const db = new Database(":memory:");
+  const timestamps = [
+    "2025-02-30 10:11:12",
+    "2025-02-29 10:11:12",
+    "2025-01-01 24:00:00",
+    "0",
+    "2025-01-01 10:11:12trailing",
+    "2026-10-19T10:11:12+15:00",
+    "2026-10-19T10:11:12.1Z",
+    "2026-10-19T10:11:12+07:00",
+    "2026-10-19T10:11:12.345Z",
+    "2099-01-01 00:00:00",
+  ];
+
+  await applyProjectMigrations(db, { through: 0 });
+  for (const [index, timestamp] of timestamps.entries()) {
+    db.run("INSERT INTO posts (title, body, created_at) VALUES (?, ?, ?)", [
+      `Legacy timestamp ${index + 1}`,
+      "# Legacy timestamp",
+      timestamp,
+    ]);
+  }
+  await applyProjectMigrations(db, { after: 0 });
+
+  for (const legacyId of [
+    "legacy-post-1",
+    "legacy-post-2",
+    "legacy-post-3",
+    "legacy-post-4",
+    "legacy-post-5",
+    "legacy-post-6",
+    "legacy-post-7",
+    "legacy-post-10",
+  ]) {
+    expect(
+      db.query("SELECT status, published_at FROM content_posts WHERE id = ?").get(legacyId),
+    ).toEqual({ status: "draft", published_at: null });
+    expect(db.query("SELECT created_at FROM content_posts WHERE id = ?").get(legacyId)).toEqual({
+      created_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u),
+    });
+  }
+  expect(
+    db.query("SELECT status, published_at FROM content_posts WHERE id = 'legacy-post-8'").get(),
+  ).toEqual({
+    status: "published",
+    published_at: "2026-10-19T03:11:12.000Z",
+  });
+  expect(
+    db.query("SELECT status, published_at FROM content_posts WHERE id = 'legacy-post-9'").get(),
+  ).toEqual({
+    status: "published",
+    published_at: "2026-10-19T10:11:12.345Z",
+  });
+
+  db.close();
+});
+
+test("forward migration downgrades malformed legacy dates and blank bodies", async () => {
+  const db = new Database(":memory:");
+  await applyProjectMigrations(db, { through: 0 });
+  db.run("INSERT INTO posts (title, body, created_at) VALUES (?, ?, ?)", [
+    "Malformed timestamp",
+    "# Valid body",
+    "2025-02-30 10:11:12",
+  ]);
+  db.run("INSERT INTO posts (title, body, created_at) VALUES (?, ?, ?)", [
+    "Whitespace body",
+    "\u00a0\u2003\u2028\u2029\ufeff",
+    "2026-10-19 10:11:12",
+  ]);
+  await applyProjectMigrations(db, { after: 0, through: 2 });
+
+  expect(db.query("SELECT status FROM content_posts WHERE id = 'legacy-post-1'").get()).toEqual({
+    status: "published",
+  });
+  expect(db.query("SELECT status FROM content_posts WHERE id = 'legacy-post-2'").get()).toEqual({
+    status: "published",
+  });
+  expect(db.query("SELECT idx FROM __test_migration_history WHERE idx = 2").get()).toEqual({
+    idx: 2,
+  });
+  expect(db.query("SELECT idx FROM __test_migration_history WHERE idx = 3").get()).toBeNull();
+
+  await applyProjectMigrations(db, { after: 2 });
+
+  expect(
+    db.query("SELECT status, published_at FROM content_posts WHERE id = 'legacy-post-1'").get(),
+  ).toEqual({ status: "draft", published_at: null });
+  expect(
+    db
+      .query("SELECT body, status, published_at FROM content_posts WHERE id = 'legacy-post-2'")
+      .get(),
+  ).toEqual({
+    body: "Original body remains in the legacy posts table.",
+    status: "draft",
+    published_at: null,
+  });
+  expect(db.query("SELECT idx FROM __test_migration_history WHERE idx = 3").get()).toEqual({
+    idx: 3,
+  });
+  expect(db.query("SELECT COUNT(*) AS total FROM posts").get()).toEqual({ total: 2 });
 
   db.close();
 });
@@ -172,6 +298,18 @@ test("content constraints reject invalid locales, unpublished dates, event order
     }),
   ).toThrow();
   expect(() => insertRecord(db, { body: "  \n\t" })).toThrow();
+  for (const whitespace of ["\u00a0", "\u2003", "\u2028\u2029", "\ufeff"]) {
+    expect(() => insertRecord(db, { body: whitespace })).toThrow();
+    expect(() => insertRecord(db, { title: whitespace })).toThrow();
+    expect(() => insertRecord(db, { description: whitespace })).toThrow();
+  }
+  expect(() =>
+    insertRecord(db, {
+      kind: "event",
+      starts_at: "2026-10-20T00:00:00.000Z",
+      location: "\u00a0\u2003",
+    }),
+  ).toThrow();
   expect(() => insertRecord(db, { version: 0 })).toThrow();
 
   db.close();
@@ -213,29 +351,72 @@ test("all locales in one translation group keep the same content kind", async ()
   db.close();
 });
 
-test("migration refuses legacy content collisions before rebuilding the content table", async () => {
-  const db = await databaseBeforeIntegrityMigration();
-  db.run("INSERT INTO posts (title, body, created_at) VALUES (?, ?, ?)", [
-    "Legacy article",
-    "# Legacy article",
-    "2026-10-19 10:11:12",
-  ]);
-  insertRecord(db, {
-    id: "reserved-legacy-key",
-    translation_key: "legacy-post-1",
-    slug: "reserved-legacy-key",
-  });
+test("migration stops before rebuilding for legacy id, key, and locale slug collisions", async () => {
+  const collisions: ReadonlyArray<Pick<ContentRecord, "id" | "translation_key" | "slug">> = [
+    { id: "legacy-post-1", translation_key: "reserved-id", slug: "reserved-id" },
+    { id: "reserved-key", translation_key: "legacy-post-1", slug: "reserved-key" },
+    { id: "reserved-slug", translation_key: "reserved-slug", slug: "legacy-post-1" },
+  ];
 
-  await expect(applyProjectMigrations(db, { after: 1 })).rejects.toThrow();
-  expect(db.query("SELECT id FROM content_posts WHERE id = 'reserved-legacy-key'").get()).toEqual({
-    id: "reserved-legacy-key",
-  });
-  expect(db.query("SELECT COUNT(*) AS total FROM posts").get()).toEqual({ total: 1 });
-  expect(
-    db.query("SELECT name FROM sqlite_master WHERE name = '__new_content_posts'").get(),
-  ).toBeNull();
+  for (const collision of collisions) {
+    const db = await databaseBeforeIntegrityMigration();
+    db.run("INSERT INTO posts (title, body, created_at) VALUES (?, ?, ?)", [
+      "Legacy article",
+      "# Legacy article",
+      "2026-10-19 10:11:12",
+    ]);
+    insertRecord(db, collision);
+    const contentSchema = db
+      .query("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'content_posts'")
+      .get();
+    const contentRows = db.query("SELECT * FROM content_posts ORDER BY id").all();
 
-  db.close();
+    await expect(applyProjectMigrations(db, { after: 1 })).rejects.toThrow(
+      /CHECK constraint failed/u,
+    );
+    expect(db.query("SELECT idx FROM __test_migration_history WHERE idx = 2").get()).toBeNull();
+    expect(
+      db
+        .query("SELECT name FROM sqlite_temp_master WHERE name = '__content_posts_migration_guard'")
+        .get(),
+    ).toBeNull();
+    expect(
+      db
+        .query("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'content_posts'")
+        .get(),
+    ).toEqual(contentSchema);
+    expect(db.query("SELECT * FROM content_posts ORDER BY id").all()).toEqual(contentRows);
+    expect(
+      db
+        .query(
+          "SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'content_posts'",
+        )
+        .all(),
+    ).toEqual([]);
+
+    db.query("DELETE FROM content_posts WHERE id = ?").run(collision.id);
+    await applyProjectMigrations(db, { after: 1 });
+    expect(db.query("SELECT idx FROM __test_migration_history WHERE idx = 2").get()).toEqual({
+      idx: 2,
+    });
+    expect(db.query("SELECT idx FROM __test_migration_history WHERE idx = 3").get()).toEqual({
+      idx: 3,
+    });
+
+    expect(
+      db
+        .query("SELECT name FROM sqlite_temp_master WHERE name = '__content_posts_migration_guard'")
+        .get(),
+    ).toBeNull();
+    expect(
+      db.query("SELECT name FROM sqlite_master WHERE name = '__new_content_posts'").get(),
+    ).toBeNull();
+    expect(db.query("SELECT status FROM content_posts WHERE id = 'legacy-post-1'").get()).toEqual({
+      status: "published",
+    });
+
+    db.close();
+  }
 });
 
 test("migration refuses pre-existing blank bodies before rebuilding the content table", async () => {
@@ -251,6 +432,64 @@ test("migration refuses pre-existing blank bodies before rebuilding the content 
   ).toBeNull();
 
   db.close();
+});
+
+test("migration refuses ECMAScript-whitespace-only existing bodies before rebuilding", async () => {
+  const whitespaceBodies = ["\u00a0", "\u2003", "\u2028\u2029", "\ufeff"];
+
+  for (const [index, body] of whitespaceBodies.entries()) {
+    const db = await databaseBeforeIntegrityMigration();
+    const id = `unicode-blank-${index}`;
+    insertRecord(db, { id, body });
+    const contentRows = db.query("SELECT * FROM content_posts ORDER BY id").all();
+
+    await expect(applyProjectMigrations(db, { after: 1 })).rejects.toThrow(
+      /CHECK constraint failed/u,
+    );
+    expect(
+      db
+        .query("SELECT name FROM sqlite_temp_master WHERE name = '__content_posts_migration_guard'")
+        .get(),
+    ).toBeNull();
+    expect(db.query("SELECT * FROM content_posts ORDER BY id").all()).toEqual(contentRows);
+    expect(
+      db.query("SELECT name FROM sqlite_master WHERE name = '__new_content_posts'").get(),
+    ).toBeNull();
+
+    db.close();
+  }
+});
+
+test("migration refuses pre-existing blank metadata before rebuilding", async () => {
+  const invalidRows: ReadonlyArray<Partial<ContentRecord>> = [
+    { id: "blank-title", title: "\u2003" },
+    { id: "blank-description", description: "\u00a0" },
+    {
+      id: "blank-event-location",
+      translation_key: "blank-event",
+      locale: "en",
+      slug: "blank-event",
+      kind: "event",
+      starts_at: "2026-10-20T00:00:00.000Z",
+      location: "\u2028",
+    },
+  ];
+
+  for (const invalidRow of invalidRows) {
+    const db = await databaseBeforeIntegrityMigration();
+    insertRecord(db, invalidRow);
+    const contentRows = db.query("SELECT * FROM content_posts ORDER BY id").all();
+
+    await expect(applyProjectMigrations(db, { after: 1 })).rejects.toThrow(
+      /CHECK constraint failed/u,
+    );
+    expect(db.query("SELECT * FROM content_posts ORDER BY id").all()).toEqual(contentRows);
+    expect(
+      db.query("SELECT name FROM sqlite_master WHERE name = '__new_content_posts'").get(),
+    ).toBeNull();
+
+    db.close();
+  }
 });
 
 test("migration refuses pre-existing mixed-kind translation groups before rebuilding", async () => {

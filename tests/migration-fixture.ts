@@ -27,14 +27,31 @@ function includesIndex(index: number, range: MigrationRange): boolean {
 }
 
 export async function applyProjectMigrations(db: Database, range: MigrationRange): Promise<void> {
+  db.exec("PRAGMA foreign_keys=ON");
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS __test_migration_history (
+      idx INTEGER PRIMARY KEY,
+      tag TEXT NOT NULL
+    )
+  `);
   const journal = JSON.parse(await readFile(journalPath, "utf8")) as MigrationJournal;
   const entries = journal.entries.filter(({ idx }) => includesIndex(idx, range));
 
   for (const entry of entries) {
+    const applied = db.query("SELECT 1 FROM __test_migration_history WHERE idx = ?").get(entry.idx);
+    if (applied) continue;
+
     const migration = await readFile(join(migrationsDirectory, `${entry.tag}.sql`), "utf8");
-    for (const statement of migration.split("--> statement-breakpoint")) {
-      const sql = statement.trim();
-      if (sql.length > 0) db.exec(sql);
-    }
+    const statements = migration.split("--> statement-breakpoint");
+    db.transaction(() => {
+      for (const statement of statements) {
+        const sql = statement.trim();
+        if (sql.length > 0) db.exec(sql);
+      }
+      db.query("INSERT INTO __test_migration_history (idx, tag) VALUES (?, ?)").run(
+        entry.idx,
+        entry.tag,
+      );
+    })();
   }
 }

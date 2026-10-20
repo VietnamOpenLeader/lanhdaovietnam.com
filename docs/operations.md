@@ -14,7 +14,7 @@ bunx void db migrate
 bun run dev
 ```
 
-The content migration is additive and retains the legacy `posts` table. Do not use `void db reset`, `void db seed`, or `void db push` to update an existing database. Review generated SQL and run only local migrations during development. Production migrations are applied by the approved Void deployment workflow.
+The migration rebuilds `content_posts` under stricter constraints and retains the legacy `posts` table; preflight guards reject known data conflicts before the rebuild. Do not use `void db reset`, `void db seed`, or `void db push` to update an existing database. Review generated SQL and run only local migrations during development. Production migrations are applied by the approved Void deployment workflow.
 
 ## Authentication and credentials
 
@@ -77,4 +77,4 @@ Tests use disposable local Void/D1 projects and synthetic tokens, not production
 
 ## Rollback and data safety
 
-Application rollback does not undo D1 writes or remove content created after deployment. Migrations are additive; schema rollback requires a reviewed forward migration. Never restore or reset a remote database without explicit operator approval and a recovery plan for writes made after the restore point.
+Application rollback does not undo D1 writes or remove content created after deployment. Schema rollback requires a reviewed forward migration. Never restore or reset a remote database without explicit operator approval and a recovery plan for writes made after the restore point.

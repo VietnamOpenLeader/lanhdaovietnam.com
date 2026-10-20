@@ -25,6 +25,7 @@ interface TranslationGroup {
 
 const libraryPath = /^\/([^/]+)\/library\/([a-z0-9]+(?:-[a-z0-9]+)*)$/u;
 const alphabetical = (left: string, right: string) => (left < right ? -1 : left > right ? 1 : 0);
+const legacyPostTranslationKeyPrefix = "legacy-post-";
 
 function invalidMarkdown(path: string, translationKey?: string): never {
   throw new ContentError({
@@ -82,6 +83,9 @@ function assertUniqueTranslation(
   paths: Set<string>,
   groups: Map<string, TranslationGroup>,
 ): void {
+  if (metadata.translationKey.startsWith(legacyPostTranslationKeyPrefix)) {
+    invalidMarkdown(page.path, metadata.translationKey);
+  }
   if (paths.has(page.path)) invalidMarkdown(page.path, metadata.translationKey);
   paths.add(page.path);
 

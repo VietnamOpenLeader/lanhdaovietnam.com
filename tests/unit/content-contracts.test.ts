@@ -16,10 +16,13 @@ test("rejects invalid locale, slug, published date and text limits", () => {
     { status: "published", publishedAt: null },
     { publishedAt: "2099-01-01T00:00:00.000Z" },
     { title: "" },
+    { title: "\u00a0\u2003" },
+    { description: "\u2028\u2029" },
     { title: "x".repeat(201) },
     { publishedAt: "not-a-date" },
     { body: "" },
     { body: " \n\t " },
+    { body: "\u00a0\u2003\u2028\u2029\ufeff" },
     { body: "你".repeat(Math.ceil(maxBodyBytes / 3)) },
   ]) {
     expect(() => decode({ ...publishedPost, ...patch })).toThrow();
@@ -37,4 +40,5 @@ test("validates event timing and required location", () => {
 
   expect(() => decode(event)).toThrow();
   expect(() => decode({ ...event, endsAt: null, location: null })).toThrow();
+  expect(() => decode({ ...event, endsAt: null, location: "\u00a0\u2003" })).toThrow();
 });

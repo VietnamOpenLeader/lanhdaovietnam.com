@@ -13,14 +13,14 @@ The implementation follows the approved plan. These choices fill in details the 
 - **Reach:** CI can run the preflight without holding a credential capable of modifying content.
 - **Verdict / confidence:** sound / high.
 
-### Keep sitemap pagination on the merged public catalog
+### Initial merged-sitemap design (superseded)
 
 - **When:** Task 10.
 - **Scenario:** A sitemap page must include published Markdown and D1 URLs, but not drafts, and must stay bounded as the D1 table grows.
 - **Plan gap:** It specified keyset iteration and a combined sitemap but not whether to duplicate the source merge in SEO code.
 - **Decision:** Reuse the locale-scoped catalog and its cursor; emit one locale/page sitemap at a time.
 - **Reach:** Sitemap ordering and visibility follow the same public catalog rules as the site.
-- **Verdict / confidence:** sound / high.
+- **Status:** Superseded by source-partitioned sitemap pages after the D1 query-budget review below.
 
 ### Render event metadata in the content UI
 
@@ -50,7 +50,7 @@ Playwright E2E ran successfully against the installed system Chrome in desktop a
 
 - **When:** Post-review P1 remediation; the developer accepted the recommendation to backfill.
 - **Scenario:** Existing rows have only `title`, `body`, and `created_at`; the new localized catalog requires locale, slug, translation key, kind, description, status, and an ISO timestamp.
-- **Decision:** The additive migration copies each row to a Vietnamese article with deterministic `legacy-post-<id>` key/slug and normalized creation time. Valid rows are published; rows with invalid title/body/date are drafts with explicit fallback metadata. The original `posts` row remains unchanged.
+- **Decision:** A data-preserving forward migration copies each row to a Vietnamese article with deterministic `legacy-post-<id>` key/slug and normalized creation time. Only nonblank title/body and strict, calendar-valid, non-future dates are published; malformed content remains draft with fallback metadata, while the original `posts` row remains unchanged.
 - **Reach:** Existing valid posts appear in the new `/vi/` catalog, while the source table remains available for recovery and audit.
 - **Verdict / confidence:** sound / high.
 
@@ -84,7 +84,7 @@ Playwright E2E ran successfully against the installed system Chrome in desktop a
 - **When:** Post-review migration remediation.
 - **Scenario:** A legacy row with an empty or oversized body cannot be inserted as published under the new body contract without failing the whole migration.
 - **Plan gap:** The original plan required retaining legacy rows but did not specify conversion behavior for malformed legacy records.
-- **Decision:** Copy every row to a deterministic Vietnamese D1 article. Rows with valid title/body and a parseable, non-future source timestamp become published; invalid rows become drafts with a nonblank review placeholder. Keep the original title/body row unchanged in `posts`.
+- **Decision:** Copy every row to a deterministic Vietnamese D1 article. Rows with valid title/body and a strict, calendar-valid, non-future source timestamp become published; invalid rows become drafts with a nonblank review placeholder. Keep the original title/body row unchanged in `posts`.
 - **Reach:** Valid legacy content appears in the new site; malformed records remain recoverable from `posts` and are not silently discarded. The existing `GET /api/posts` starter contract intentionally changes to the approved paginated catalog response.
 - **Verdict / confidence:** sound / medium.
 
@@ -93,7 +93,7 @@ Playwright E2E ran successfully against the installed system Chrome in desktop a
 - **When:** Final migration-safety remediation.
 - **Scenario:** A database created under the earlier content schema may legally contain a blank body or mixed-kind translation group. Copying those rows into the stricter rebuilt table can fail or preserve invalid lineage; a legacy backfill key may also overlap a row already created in D1.
 - **Plan gap:** The approved backfill decision did not specify how to handle intermediate schema states or namespace collisions.
-- **Decision:** Run a migration precondition before creating the replacement table. It fails closed for blank existing bodies, mixed-kind groups, or a collision with a deterministic legacy ID/key/slug. Execute migration statements individually in the SQLite test fixture so the first failed statement stops the migration test.
+- **Decision:** Keep applied migration `20261020104231_stiff_nighthawk` unchanged. A forward migration (`20261020122833_true_korath`) repairs legacy rows created under its permissive timestamp/body checks, then runs a precondition before rebuilding. It fails closed for remaining blank metadata/body or mixed-kind groups. Execute statements and migration-history insertion in one SQLite transaction in the test fixture, so failure rolls back and a repaired database can retry.
 - **Reach:** Operators must resolve database conflicts before retrying migration; the migration never silently drops or overwrites those rows. Malformed legacy dates remain drafts, not published records.
 - **Verdict / confidence:** sound / high.
 

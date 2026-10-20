@@ -33,4 +33,4 @@ bun run test:e2e
 
 Never commit OAuth credentials, API tokens, or token hashes. Production deployment is gated by CI and an authenticated, read-only content conflict check.
 
-`GET /api/posts` now returns the paginated localized catalog envelope (`data`, `nextCursor`) rather than the starter project's raw `posts` array. The additive migration backfills valid legacy rows into Vietnamese articles and keeps the original table unchanged.
+`GET /api/posts` now returns the paginated localized catalog envelope (`data`, `nextCursor`) rather than the starter project's raw `posts` array. The data-preserving migration rebuilds `content_posts` under stricter constraints, backfills eligible legacy rows into Vietnamese articles, and keeps the original `posts` table unchanged.

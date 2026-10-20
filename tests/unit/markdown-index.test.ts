@@ -51,3 +51,9 @@ test("rejects drafts, path/frontmatter disagreement and duplicate translations",
     buildMarkdownIndex([markdownPage("vi", "one", "One"), markdownPage("vi", "two", "Two")]),
   ).toThrow();
 });
+
+test("reserves legacy D1 translation keys from Markdown content", () => {
+  expect(() =>
+    buildMarkdownIndex([markdownPage("vi", "legacy-post", "Legacy post", "legacy-post-1")]),
+  ).toThrow();
+});

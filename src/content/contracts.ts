@@ -13,7 +13,11 @@ export type ContentStatus = (typeof contentStatuses)[number];
 export type ContentSource = "markdown" | "d1";
 
 const nonEmptyString = (maxLength: number) =>
-  Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(maxLength));
+  Schema.String.check(
+    Schema.isMinLength(1),
+    Schema.isMaxLength(maxLength),
+    Schema.makeFilter((value) => (value.trim().length > 0 ? undefined : "Value must not be blank")),
+  );
 
 const slugSchema = Schema.String.check(
   Schema.isMinLength(1),

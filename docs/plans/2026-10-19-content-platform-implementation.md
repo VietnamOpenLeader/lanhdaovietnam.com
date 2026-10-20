@@ -26,7 +26,7 @@
 - URL Markdown: `/{locale}/library/{slug}`. URL D1: `/{locale}/posts/{slug}`. `/` redirect `302` đến `/vi/`; home locale có trailing slash, detail/login không có. Noncanonical page URLs redirect `308`; không normalize đường API.
 - Chỉ admin được CRUD. Admin web theo user ID server-side; CLI theo bearer token quản trị nội dung. Cấu hình thiếu nghĩa là từ chối.
 - Không secret trong Git, CLI arguments, URL, stdout, browser props hoặc `VITE_*`. `.env` chỉ dùng local; production secret nhập qua Void CLI bởi operator.
-- Không `db reset`, `db seed`, `db push`, remote mode, remote migration hay deploy trong thực thi tự động. Dùng migrations additive và `void db migrate` local.
+- Không `db reset`, `db seed`, `db push`, remote mode, remote migration hay deploy trong thực thi tự động. Dùng migration forward có preflight data-preserving và `void db migrate` local; không xóa bảng `posts` legacy.
 - Giữ nguyên bảng `posts` cũ và migration `20261019015751_vengeful_omega_red.sql`; migration mới backfill mỗi hàng legacy thành bài viết tiếng Việt với key/slug `legacy-post-<id>`, theo quyết định được người dùng chấp thuận sau review. Chỉ hàng có title/body hợp lệ và `created_at` parse được, không ở tương lai, mới được publish; hàng khác được giữ thành draft, còn nguồn legacy không đổi. Trước khi rebuild, migration từ chối trạng thái `content_posts` cũ có body trắng, translation group lẫn kind, hoặc xung đột namespace legacy.
 - Endpoint demo `/api/posts` đổi sang hợp đồng mới được ghi rõ trong README. Xóa ví dụ TanStack và lời gọi demo không còn tương thích; không giả vờ giữ nguyên API cũ.
 - Không full-table body scan cho danh mục, không N+1 để lấy bản dịch, không shared ISR cho danh mục/D1/auth trong đợt đầu.
@@ -372,7 +372,7 @@ Chạy `bun test tests/unit/admin-policy.test.ts`; xác nhận 401/403 semantics
 - [x] **4.6 — GREEN:** `bun test tests/unit/admin-policy.test.ts tests/unit/social-providers.test.ts` PASS (4 tests, 11 assertions); `bun run test:api` PASS (email signup/profile + smoke, 4 tests / 16 assertions, without OAuth secrets); `bun run typecheck` PASS. OAuth live chưa kiểm chứng.
 - [x] **4.7 — Commit:** `GIT_EDITOR=true git commit -m "feat: restrict content administration to admins"`.
 
-## Task 5 — D1 schema additive, constraints và query plans
+## Task 5 — D1 schema migration, constraints và query plans
 
 **Files**
 - Modify: `db/schema.ts:1-9` bằng cách thêm export, không sửa `posts`.
@@ -416,7 +416,7 @@ Tạo `tests/migration-fixture.ts`: `applyProjectMigrations(db, range)` đọc j
 - [x] **5.3 — Generate:** `bunx void db generate`; review SQL, snapshots/journal diff, auth tables được Void sinh sau Task 4. Không tự khai lại auth tables ở app schema.
 - [x] **5.4 — Query plans:** test `EXPLAIN QUERY PLAN` cho public list có/không kind, point lookup và translations. Assert sử dụng index phù hợp, không `SCAN content_posts` toàn bảng và không temp sort cho hai public-list queries. Với cast/function trên ngày làm mất index, đổi query thay vì thêm cache che chi phí.
 - [x] **5.5 — GREEN:** `bun test tests/unit/migrations.test.ts`, `bunx void db migrate` local, `bun scripts/test-local.ts api`. SQLite tests bổ sung duplicate/invalid locale/invalid event/version constraints. D1-runtime tests ở task sau vẫn bắt buộc vì SQLite không chứng minh toàn bộ D1 behavior.
-- [x] **5.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: add localized content tables and legacy backfill"`.
+- [x] **5.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: add localized content tables without altering legacy posts"`.
 
 ## Task 6 — Repository, safe rendering và CRUD API
 
@@ -720,13 +720,13 @@ test("người đọc đổi ngôn ngữ qua bản dịch có thật", async ({ 
 });
 ```
 
-- [ ] **11.2 — Browser matrix:** Chromium desktop và mobile viewport; signin/signup/signout email thật, member không được mutate, admin session mutate, login pending/error, mobile nav nếu có, language switch, locale/date formatting, missing translation, draft direct URL, next/back pages, Kumo focus/keyboard, reduced-motion. Capture screenshot lúc layout ổn định và console errors/hydration mismatch/network failures. Desktop/mobile E2E hiện cover email signup/signout, locale switch, missing routes, keyboard/reduced-motion và page errors; browser admin-session mutation cùng artifact screenshot ổn định chưa được tự động hóa.
+- [ ] **11.2 — Browser matrix:** Chromium desktop và mobile viewport; signin/signup/signout email thật, member không được mutate, admin session mutate, login pending/error, mobile nav nếu có, language switch, locale/date formatting, missing translation, draft direct URL, next/back pages, Kumo focus/keyboard, reduced-motion. Capture screenshot lúc layout ổn định và console errors/hydration mismatch/network failures. Hiện E2E cover signup/signout, required fields, locale/filter/not-found, keyboard/reduced-motion và page errors. Chưa cover browser member-denial/admin mutation, login pending/error, event date, draft direct URL, pagination, missing-translation fallback, request/network failures đầy đủ hoặc screenshot artifact ổn định.
 - [x] **11.3 — Asset checks:** article không có island không tải app-wide hydration bundle; login chỉ tải island/catalog của locale hiện tại. Kiểm tra network/bundle manifest thay vì khẳng định “zero JS” tuyệt đối vì Markdown code-copy script có thể tồn tại.
 - [x] **11.4 — CI:** Node 24 + Bun, `bun install --frozen-lockfile`, `bun run check`, `bunx playwright install --with-deps chromium`, `bun run test:e2e`, upload test artifacts khi lỗi. Không cung cấp production OAuth/API token cho PR test.
 - [x] **11.5 — Deploy workflow:** thêm local gates trước bước deploy hiện có; candidate manifest preflight là bước riêng trước migration/deploy, dùng token read-only content-check được operator cấp. Deployment tự động sau bootstrap bắt buộc preflight; thiếu credential hoặc endpoint không truy cập được thì dừng, không skip im lặng. Lần đầu chưa có endpoint cần operator bootstrap theo runbook với phê duyệt riêng; không tự fallback từ preflight lỗi sang deploy. Không chạy workflow/deploy trong phiên triển khai này nếu chưa được phép.
 - [x] **11.6 — Runbook:** fresh install→prepare→migrate local→dev; viết Markdown/frontmatter; tạo từng locale; tạo draft/publish/update/delete qua CLI; cấp admin ID qua profile, tạo token ngoài source và lưu digest server, rotate/revoke, callback URLs OAuth từng môi trường. Không ghi token thật hoặc mặc định dùng production API trong ví dụ.
-- [x] **11.7 — Migration/rollback:** additive schema không drop legacy data; app rollback không tự restore DB hoặc xóa content mới. Nếu deployment migration hỏng, dừng deploy, review forward-fix; chỉ restore remote khi người dùng cho phép và hiểu dữ liệu ghi sau mốc sẽ mất.
-- [ ] **11.8 — GREEN: final validation đúng command:**
+- [x] **11.7 — Migration/rollback:** migration rebuild có guard không drop legacy data; app rollback không tự restore DB hoặc xóa content mới. Nếu deployment migration hỏng, dừng deploy, review forward-fix; chỉ restore remote khi người dùng cho phép và hiểu dữ liệu ghi sau mốc sẽ mất.
+- [x] **11.8 — GREEN: final validation đúng command:**
 
 ```sh
 bun install --frozen-lockfile
@@ -738,7 +738,7 @@ git diff --check
 
 Mong đợi tất cả exit 0; báo số test thực tế, screenshots/artifacts và những check bị chặn. Social OAuth E2E chỉ đánh dấu PASS khi đã callback thật qua từng provider; thiếu credentials thì ghi NOT RUN, không đánh dấu xong bằng mock.
 
-Local verification used the installed system Chrome through `PLAYWRIGHT_CHROMIUM_EXECUTABLE`; `bunx playwright install --with-deps chromium` was not run locally. CI runs that exact browser installation step. Live social OAuth callbacks remain NOT RUN because provider credentials were not supplied.
+The exact local validation sequence passed, including `bunx playwright install --with-deps chromium` and Playwright's downloaded Chromium. E2E passed 12 desktop/mobile cases; no stable screenshot artifact was captured. Live social OAuth callbacks remain NOT RUN because provider credentials were not supplied.
 
 - [x] **11.9 — Commit:** `GIT_EDITOR=true git commit -m "test: gate localized content workflows and document operations"`.
 
@@ -769,5 +769,5 @@ Local verification used the installed system Chrome through `PLAYWRIGHT_CHROMIUM
 - Effect v4 LTS, platform scope and Standard Schema bridge — [Effect repository, retrieved 2026-10-19](https://github.com/Effect-TS/effect), [platform guide, retrieved 2026-10-19](https://effect.website/docs/v4/platform/introduction), [Schema adapter, retrieved 2026-10-19](https://effect.website/docs/v4/schema/standard-schema).
 - `@xstate/effect` alpha requirements, actor lifecycle and React usage — [XState Effect repository, retrieved 2026-10-19](https://github.com/statelyai/xstate/tree/next/packages/xstate-effect).
 - Void host boundaries — [Hono routing, retrieved 2026-10-19](https://void.cloud/guide/server-routing) and [Drizzle/D1, retrieved 2026-10-19](https://void.cloud/guide/database).
-- Fresh local verification: `bun install --frozen-lockfile` PASS; `bun run check` PASS (41 unit, 20 integration, 2 CLI tests, production build); `PLAYWRIGHT_CHROMIUM_EXECUTABLE='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' bun run test:e2e` PASS (12 desktop/mobile tests); `bun run ship:gate` PASS after TypeScript, Biome, migration, and API fixes.
-- NOT RUN: local `bunx playwright install --with-deps chromium`, live social OAuth callbacks, production deployment. Task 11.2 remains partial because admin-session mutation and retained screenshot artifact are not automated; Task 11.8 remains unchecked because its exact browser-install command was not run locally.
+- Fresh local verification: `bun install --frozen-lockfile` PASS; `bun run check` PASS (49 unit, 20 integration, 2 CLI tests, production build); `bunx void db migrate` PASS (four local migrations); `bunx playwright install --with-deps chromium` PASS; `bun run test:e2e` PASS (12 desktop/mobile tests); `bash scripts/ship-gate.sh` PASS; `git diff --check` PASS.
+- NOT RUN: live social OAuth callbacks and production deployment. Task 11.2 remains partial: browser admin/member mutation, pending/error states, event dates, direct draft URLs, pagination, missing-translation fallback, complete network failure monitoring and retained screenshot evidence are not automated.
