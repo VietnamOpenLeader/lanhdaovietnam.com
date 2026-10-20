@@ -5,6 +5,7 @@ import { contentKinds, locales, type ContentKind, type Locale } from "./contract
 export interface ContentSummary {
   readonly key: string;
   readonly source: "markdown" | "d1";
+  readonly translationKey: string;
   readonly locale: Locale;
   readonly slug: string;
   readonly kind: ContentKind;
@@ -25,6 +26,14 @@ export interface Cursor {
   readonly key: string;
 }
 
+export interface AdminCursor {
+  readonly v: 1;
+  readonly locale: Locale;
+  readonly kind: ContentKind | null;
+  readonly updatedAt: string;
+  readonly id: string;
+}
+
 export interface CursorFilter {
   readonly locale: Locale;
   readonly kind: ContentKind | null;
@@ -32,7 +41,13 @@ export interface CursorFilter {
 
 const cursorKeySchema = Schema.String.check(
   Schema.isMaxLength(256),
-  Schema.isPattern(/^(?:d1:[A-Za-z0-9_-]+|markdown:\/(?:vi|en|zh-CN)\/library\/[a-z0-9-]+)$/u),
+  Schema.makeFilter((value) => {
+    if (/^d1:[A-Za-z0-9_-]+$/u.test(value)) return undefined;
+    const match = /^markdown:\/([^/]+)\/library\/[a-z0-9-]+$/u.exec(value);
+    return locales.some((locale) => locale === match?.[1])
+      ? undefined
+      : "Expected a content cursor key";
+  }),
 );
 const cursorSchema = Schema.Struct({
   v: Schema.Literal(1),
@@ -48,6 +63,21 @@ const cursorSchema = Schema.Struct({
     }),
   ),
   key: cursorKeySchema,
+});
+const adminCursorSchema = Schema.Struct({
+  v: Schema.Literal(1),
+  locale: Schema.Literals(locales),
+  kind: Schema.NullOr(Schema.Literals(contentKinds)),
+  updatedAt: Schema.String.check(
+    Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u),
+    Schema.makeFilter((value) => {
+      const date = new Date(value);
+      return Number.isFinite(date.valueOf()) && date.toISOString() === value
+        ? undefined
+        : "Expected a valid UTC timestamp";
+    }),
+  ),
+  id: Schema.String.check(Schema.isMaxLength(128), Schema.isPattern(/^[A-Za-z0-9_-]+$/u)),
 });
 const cursorEncodingPattern = /^[A-Za-z0-9_-]{1,1024}$/u;
 
@@ -79,6 +109,24 @@ export function parseCursor(encoded: string, filter: CursorFilter): Cursor {
     if (cursor.locale !== filter.locale || cursor.kind !== filter.kind) {
       return invalidCursor();
     }
+    return cursor;
+  } catch {
+    return invalidCursor();
+  }
+}
+
+export function encodeAdminCursor(cursor: AdminCursor): string {
+  return encodeBase64Url(JSON.stringify(cursor));
+}
+
+export function parseAdminCursor(encoded: string, filter: CursorFilter): AdminCursor {
+  if (!cursorEncodingPattern.test(encoded)) return invalidCursor();
+
+  try {
+    const cursor = Schema.decodeUnknownSync(adminCursorSchema, {
+      onExcessProperty: "error",
+    })(JSON.parse(decodeBase64Url(encoded)));
+    if (cursor.locale !== filter.locale || cursor.kind !== filter.kind) return invalidCursor();
     return cursor;
   } catch {
     return invalidCursor();

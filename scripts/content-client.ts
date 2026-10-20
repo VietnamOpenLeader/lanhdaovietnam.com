@@ -60,6 +60,19 @@ function validateToken(token?: string): void {
   }
 }
 
+function resolveApiURL(path: string, baseURL: URL): URL {
+  const target = new URL(path, baseURL);
+  if (
+    target.origin !== baseURL.origin ||
+    target.username !== "" ||
+    target.password !== "" ||
+    !target.pathname.startsWith("/api/")
+  ) {
+    throw new ContentApiFailure("INVALID_RESPONSE");
+  }
+  return target;
+}
+
 function safeErrorCode(body: unknown): string {
   if (typeof body !== "object" || body === null || !("error" in body)) return "API_ERROR";
   const error = body.error;
@@ -88,11 +101,12 @@ export function createContentClient(options: ContentClientOptions): ContentClien
 
   return {
     request: async (path, init = {}) => {
+      const target = resolveApiURL(path, baseURL);
       const headers = new Headers(init.headers);
       if (options.token) headers.set("Authorization", `Bearer ${options.token}`);
       let response: Response;
       try {
-        response = await fetcher(new URL(path, baseURL), {
+        response = await fetcher(target, {
           ...init,
           headers,
           redirect: "error",

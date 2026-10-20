@@ -3,8 +3,9 @@ import { Effect } from "effect";
 import { requireContentAdmin } from "../../src/auth/admin.server";
 import { listCatalog } from "../../src/content/catalog.server";
 import { ContentError } from "../../src/core/errors";
-import { createContent, listContent } from "../../src/content/programs.server";
+import { createContent, listAdminContent } from "../../src/content/programs.server";
 import { hasMarkdownTranslationKey } from "../../src/content/manifest.server";
+import { encodeAdminCursor, parseAdminCursor } from "../../src/content/pagination";
 import { runContentProgram } from "../../src/content/run.server";
 import { parseContentInput, parseContentListQuery } from "../../src/content/validation.server";
 import { contentErrorResponse } from "../../src/http/content-errors.server";
@@ -16,13 +17,33 @@ export const GET = defineHandler(async (context) => {
     const includeDrafts = context.req.query("view") === "admin";
     if (includeDrafts) {
       await Effect.runPromise(requireContentAdmin(context));
-      if (cursor !== undefined) {
-        throw new ContentError({ status: 400, code: "VALIDATION" });
-      }
-      const data = await runContentProgram(listContent({ ...query, includeDrafts }));
+      const adminCursor =
+        cursor === undefined
+          ? undefined
+          : parseAdminCursor(cursor, { locale: query.locale, kind: query.kind ?? null });
+      const rows = await runContentProgram(
+        listAdminContent({
+          locale: query.locale,
+          ...(query.kind === undefined ? {} : { kind: query.kind }),
+          limit: query.limit + 1,
+          ...(adminCursor === undefined ? {} : { cursor: adminCursor }),
+        }),
+      );
+      const data = rows.slice(0, query.limit);
+      const lastItem = data.at(-1);
+      const nextCursor =
+        rows.length > query.limit && lastItem
+          ? encodeAdminCursor({
+              v: 1,
+              locale: query.locale,
+              kind: query.kind ?? null,
+              updatedAt: lastItem.updatedAt,
+              id: lastItem.id,
+            })
+          : null;
       return context.json({
         data: data.map((record) => ({ ...record, source: "d1" })),
-        nextCursor: null,
+        nextCursor,
       });
     }
 

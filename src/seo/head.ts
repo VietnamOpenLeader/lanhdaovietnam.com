@@ -1,5 +1,5 @@
 import type { HeadDescriptor } from "void";
-import type { Locale } from "../i18n/locales";
+import { locales, type Locale } from "../i18n/locales";
 import type { ContentSummary } from "../content/pagination";
 
 interface ContentHeadInput {
@@ -41,7 +41,7 @@ function jsonLD(entry: ContentSummary, url: string): string {
   return serializeJSONLD({
     "@context": "https://schema.org",
     "@type": jsonLDType(entry),
-    headline: entry.title,
+    ...(entry.kind === "event" ? { name: entry.title } : { headline: entry.title }),
     description: entry.description,
     datePublished: entry.publishedAt,
     inLanguage: entry.locale,
@@ -110,7 +110,14 @@ export function buildHomeHead(input: HomeHeadInput): HeadDescriptor {
       { name: "twitter:title", content: input.title },
       { name: "twitter:description", content: input.description },
     ],
-    link: [{ rel: "canonical", href: canonical }],
+    link: [
+      { rel: "canonical", href: canonical },
+      ...locales.map((locale) => ({
+        rel: "alternate",
+        hreflang: locale,
+        href: absoluteURL(`/${locale}/`, input.siteURL),
+      })),
+    ],
   };
 }
 

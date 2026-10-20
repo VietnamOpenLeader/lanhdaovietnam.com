@@ -8,10 +8,10 @@ import {
   parseMarkdownContent,
 } from "../src/content/frontmatter";
 import { buildMarkdownIndex, type PublishedMarkdownEntry } from "../src/content/markdown";
-import type { ContentMetadata } from "../src/content/contracts";
+import { locales, type ContentMetadata } from "../src/content/contracts";
 
 const pagesRoot = join(import.meta.dir, "..", "pages");
-const contentFolders = ["vi/library", "en/library", "zh-CN/library"] as const;
+const contentFolders = locales.map((locale) => `${locale}/library`);
 
 function collectMarkdownFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

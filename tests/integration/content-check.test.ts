@@ -103,3 +103,75 @@ test("read-only content preflight detects published source conflicts without ret
     });
   }
 });
+
+test("content preflight enforces the one-hundred-entry request limit", async () => {
+  const entries: ContentMetadata[] = Array.from({ length: 101 }, (_, index) => ({
+    translationKey: `preflight-key-${index}`,
+    locale: "vi",
+    slug: `preflight-key-${index}`,
+    kind: "article",
+    title: "Candidate",
+    description: "Candidate metadata",
+    status: "published",
+    publishedAt: "2026-10-19T00:00:00.000Z",
+    startsAt: null,
+    endsAt: null,
+    location: null,
+  }));
+
+  const response = await fetch(`${baseURL}/api/content-check`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({ entries: entries.slice(0, 100) }),
+  });
+
+  expect(response.status).toBe(200);
+  expect(readResult(await response.json())).toMatchObject({
+    checkedCount: 100,
+    conflictKeys: [],
+  });
+
+  const oversized = await fetch(`${baseURL}/api/content-check`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({ entries }),
+  });
+  expect(oversized.status).toBe(422);
+});
+
+test("content preflight reserves translation keys owned by D1 drafts", async () => {
+  const translationKey = `draft-owner-${crypto.randomUUID()}`;
+  const slug = `draft-owner-${crypto.randomUUID()}`;
+  const created = await fetch(`${baseURL}/api/posts`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      ...publishedPost,
+      translationKey,
+      slug,
+      status: "draft",
+      publishedAt: null,
+    }),
+  });
+  expect(created.status).toBe(201);
+  const row = Schema.decodeUnknownSync(savedResponseSchema)(await created.json()).data;
+
+  try {
+    const candidate = await fetch(`${baseURL}/api/content-check`, {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({
+        entries: [toMetadata(publishedPost, translationKey, `candidate-${slug}`)],
+      }),
+    });
+
+    expect(candidate.status).toBe(200);
+    expect(readResult(await candidate.json()).conflictKeys).toEqual([translationKey]);
+  } finally {
+    await fetch(`${baseURL}/api/posts/${row.id}`, {
+      method: "DELETE",
+      headers: adminHeaders(),
+      body: JSON.stringify({ version: row.version }),
+    });
+  }
+});

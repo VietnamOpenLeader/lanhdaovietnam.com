@@ -23,7 +23,7 @@ interface TranslationGroup {
   readonly locales: Set<Locale>;
 }
 
-const libraryPath = /^\/(vi|en|zh-CN)\/library\/([a-z0-9]+(?:-[a-z0-9]+)*)$/u;
+const libraryPath = /^\/([^/]+)\/library\/([a-z0-9]+(?:-[a-z0-9]+)*)$/u;
 const alphabetical = (left: string, right: string) => (left < right ? -1 : left > right ? 1 : 0);
 
 function invalidMarkdown(path: string, translationKey?: string): never {
@@ -125,6 +125,7 @@ export function markdownSummary(entry: PublishedMarkdownEntry): ContentSummary {
   return {
     key: entry.key,
     source: "markdown",
+    translationKey: entry.translationKey,
     locale: entry.locale,
     slug: entry.slug,
     kind: entry.kind,

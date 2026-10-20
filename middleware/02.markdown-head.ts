@@ -1,8 +1,8 @@
 import { defineMiddleware } from "void";
 import { env } from "void/env";
 import { buildContentHead } from "../src/seo/head";
-import { getMarkdownEntry, markdownIndex } from "../src/content/manifest.server";
-import { markdownSummary, markdownTranslations } from "../src/content/markdown";
+import { getMarkdownEntry, getMarkdownTranslations } from "../src/content/manifest.server";
+import { markdownSummary } from "../src/content/markdown";
 
 export default defineMiddleware(async (context, next) => {
   const path = new URL(context.req.url).pathname;
@@ -12,7 +12,7 @@ export default defineMiddleware(async (context, next) => {
       "headDefaults",
       buildContentHead({
         entry: markdownSummary(entry),
-        alternates: markdownTranslations(markdownIndex, entry.translationKey),
+        alternates: getMarkdownTranslations(entry.translationKey),
         siteURL: env.SITE_URL,
       }),
     );

@@ -8,6 +8,7 @@ const savedResponseSchema = Schema.Struct({ data: savedRecordSchema });
 const summarySchema = Schema.Struct({
   key: Schema.String,
   source: Schema.Literals(["markdown", "d1"]),
+  translationKey: Schema.String,
   locale: Schema.String,
   kind: Schema.String,
   url: Schema.String,
@@ -65,6 +66,7 @@ test("merged catalog paginates across same-date Markdown and D1 records without 
       const item = page.data[0];
       if (item) {
         expect(seen.has(item.key)).toBe(false);
+        expect(item.translationKey.length).toBeGreaterThan(0);
         seen.add(item.key);
       }
       cursor = page.nextCursor;

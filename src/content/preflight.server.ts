@@ -1,6 +1,6 @@
 import { ContentError } from "../core/errors";
 import type { ContentMetadata } from "./contracts";
-import { findPublishedForTranslationKeys } from "./programs.server";
+import { findForTranslationKeys } from "./programs.server";
 import { runContentProgram } from "./run.server";
 
 export interface ContentConflictResult {
@@ -60,7 +60,7 @@ export async function checkContentConflicts(
   }
   const batches = splitBatches(translationKeys, translationKeyBatchSize);
   const existing = await Promise.all(
-    batches.map((batch) => runContentProgram(findPublishedForTranslationKeys(batch))),
+    batches.map((batch) => runContentProgram(findForTranslationKeys(batch))),
   );
   const existingKeys = new Set(existing.flatMap((rows) => rows.map((row) => row.translationKey)));
 

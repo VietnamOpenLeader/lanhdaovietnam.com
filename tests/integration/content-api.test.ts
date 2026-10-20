@@ -10,6 +10,16 @@ const savedRecordSchema = Schema.Struct({
   body: Schema.String,
 });
 const contentResponseSchema = Schema.Struct({ data: savedRecordSchema });
+const adminListSchema = Schema.Struct({
+  data: Schema.Array(
+    Schema.Struct({
+      id: Schema.String,
+      status: Schema.String,
+      version: Schema.Number,
+    }),
+  ),
+  nextCursor: Schema.NullOr(Schema.String),
+});
 
 function readRecord(value: unknown): Schema.Schema.Type<typeof savedRecordSchema> {
   return Schema.decodeUnknownSync(contentResponseSchema)(value).data;
@@ -128,6 +138,63 @@ test("draft content is hidden from public reads and lists", async () => {
   expect((await fetch(`${baseURL}/api/posts?locale=vi&view=admin`)).status).toBe(401);
 });
 
+test("admin content listing paginates mixed draft and published records past one hundred", async () => {
+  const records: Array<{ readonly id: string; readonly version: number }> = [];
+  const prefix = `admin-page-${crypto.randomUUID()}`;
+
+  try {
+    for (let index = 0; index < 101; index += 1) {
+      const key = `${prefix}-${index}`;
+      const status = index % 2 === 0 ? "published" : "draft";
+      const response = await fetch(`${baseURL}/api/posts`, {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({
+          ...publishedPost,
+          translationKey: key,
+          slug: key,
+          kind: "news",
+          status,
+          publishedAt: status === "published" ? publishedPost.publishedAt : null,
+        }),
+      });
+      expect(response.status).toBe(201);
+      const record = readRecord(await response.json());
+      records.push(record);
+    }
+
+    const getPage = async (cursor?: string) => {
+      const url = new URL(`${baseURL}/api/posts`);
+      url.searchParams.set("locale", "vi");
+      url.searchParams.set("kind", "news");
+      url.searchParams.set("limit", "100");
+      url.searchParams.set("view", "admin");
+      if (cursor) url.searchParams.set("cursor", cursor);
+      const response = await fetch(url, { headers: adminHeaders() });
+      expect(response.status).toBe(200);
+      return Schema.decodeUnknownSync(adminListSchema)(await response.json());
+    };
+
+    const first = await getPage();
+    expect(first.data).toHaveLength(100);
+    expect(first.nextCursor).not.toBeNull();
+    const second = await getPage(first.nextCursor ?? undefined);
+    expect(second.data).toHaveLength(1);
+    expect(second.nextCursor).toBeNull();
+    expect(new Set([...first.data, ...second.data].map((record) => record.id)).size).toBe(101);
+  } finally {
+    await Promise.all(
+      records.map(({ id, version }) =>
+        fetch(`${baseURL}/api/posts/${id}`, {
+          method: "DELETE",
+          headers: adminHeaders(),
+          body: JSON.stringify({ version }),
+        }),
+      ),
+    );
+  }
+});
+
 test("signed-in members cannot write content without the admin allowlist", async () => {
   const signup = await fetch(`${baseURL}/api/auth/sign-up/email`, {
     method: "POST",
@@ -213,6 +280,65 @@ test("D1 cannot take ownership of a Markdown translation key", async () => {
   }
 });
 
+test("D1 translation groups cannot mix content kinds across locales", async () => {
+  const translationKey = `kind-group-${crypto.randomUUID()}`;
+  const created: Array<{ readonly id: string; readonly version: number }> = [];
+  const create = async (locale: "vi" | "en", slug: string) => {
+    const response = await fetch(`${baseURL}/api/posts`, {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ ...publishedPost, translationKey, locale, slug }),
+    });
+    expect(response.status).toBe(201);
+    const record = readRecord(await response.json());
+    created.push(record);
+    return record;
+  };
+
+  try {
+    await create("vi", `kind-group-vi-${crypto.randomUUID()}`);
+    const english = await create("en", `kind-group-en-${crypto.randomUUID()}`);
+    const update = await fetch(`${baseURL}/api/posts/${english.id}`, {
+      method: "PUT",
+      headers: adminHeaders(),
+      body: JSON.stringify({
+        ...publishedPost,
+        translationKey,
+        locale: "en",
+        slug: `kind-group-en-${crypto.randomUUID()}`,
+        kind: "news",
+        version: english.version,
+      }),
+    });
+    expect(update.status).toBe(409);
+
+    const createMismatch = await fetch(`${baseURL}/api/posts`, {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({
+        ...publishedPost,
+        translationKey,
+        locale: "zh-CN",
+        slug: `kind-group-zh-${crypto.randomUUID()}`,
+        kind: "event",
+        startsAt: "2026-11-01T00:00:00.000Z",
+        location: "Hanoi",
+      }),
+    });
+    expect(createMismatch.status).toBe(409);
+  } finally {
+    await Promise.all(
+      created.map(({ id, version }) =>
+        fetch(`${baseURL}/api/posts/${id}`, {
+          method: "DELETE",
+          headers: adminHeaders(),
+          body: JSON.stringify({ version }),
+        }),
+      ),
+    );
+  }
+});
+
 test("content endpoints reject malformed JSON and invalid payloads", async () => {
   const missing = await fetch(`${baseURL}/api/posts`, {
     method: "POST",
@@ -237,7 +363,32 @@ test("content endpoints reject malformed JSON and invalid payloads", async () =>
   const oversized = await fetch(`${baseURL}/api/posts`, {
     method: "POST",
     headers: adminHeaders(),
-    body: "x".repeat(220_000),
+    body: "x".repeat(1_400_000),
   });
   expect(oversized.status).toBe(413);
+});
+
+test("content API accepts a schema-valid body whose JSON escaping expands its wire size", async () => {
+  const translationKey = `escaped-${crypto.randomUUID()}`;
+  const payload = {
+    ...publishedPost,
+    translationKey,
+    slug: translationKey,
+    body: "\u0001".repeat(200 * 1024),
+  };
+  const response = await fetch(`${baseURL}/api/posts`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  expect(response.status).toBe(201);
+  const record = readRecord(await response.json());
+  expect(record.body).toBe(payload.body);
+
+  await fetch(`${baseURL}/api/posts/${record.id}`, {
+    method: "DELETE",
+    headers: adminHeaders(),
+    body: JSON.stringify({ version: record.version }),
+  });
 });

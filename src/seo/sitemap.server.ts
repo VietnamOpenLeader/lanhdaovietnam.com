@@ -1,115 +1,105 @@
-import { and, count, eq } from "void/db";
-import { db } from "void/db";
-import { contentPosts } from "@schema";
 import type { Locale } from "../i18n/locales";
 import { locales } from "../i18n/locales";
+import { countPublishedByLocale, listPublishedSlugs } from "../content/programs.server";
 import { markdownIndex } from "../content/manifest.server";
-import { listCatalog } from "../content/catalog.server";
+import { runContentProgram } from "../content/run.server";
 import { escapeXML } from "./xml";
 
 const maxEntriesPerPart = 10_000;
 const maxXMLBytesPerPart = 10 * 1024 * 1024;
-const d1PageSize = 500;
+
+export type SitemapSource = "d1" | "markdown";
 
 export interface SitemapPart {
   readonly url: string;
 }
 
+interface LocaleCounts {
+  readonly locale: Locale;
+  readonly d1Count: number;
+  readonly markdownCount: number;
+}
+
+const markdownPathsByLocale = new Map(
+  locales.map((locale) => [
+    locale,
+    markdownIndex.filter((entry) => entry.locale === locale).map((entry) => entry.url),
+  ]),
+);
+
 function absoluteURL(path: string, siteURL: string): string {
   return new URL(path, siteURL).toString();
 }
 
-async function countD1Published(locale: Locale): Promise<number> {
-  const [row] = await db
-    .select({ total: count() })
-    .from(contentPosts)
-    .where(and(eq(contentPosts.locale, locale), eq(contentPosts.status, "published")));
-  return row?.total ?? 0;
-}
-
-async function localePageCounts(): Promise<
-  ReadonlyArray<{
-    readonly locale: Locale;
-    readonly count: number;
-  }>
-> {
+async function localePageCounts(): Promise<ReadonlyArray<LocaleCounts>> {
   return Promise.all(
     locales.map(async (locale) => {
-      const [d1Count, markdownCount] = await Promise.all([
-        countD1Published(locale),
-        Promise.resolve(markdownIndex.filter((entry) => entry.locale === locale).length),
-      ]);
-      return { locale, count: d1Count + markdownCount };
+      const d1Count = await runContentProgram(countPublishedByLocale(locale));
+      return {
+        locale,
+        d1Count,
+        markdownCount: markdownPathsByLocale.get(locale)?.length ?? 0,
+      };
     }),
   );
 }
 
+function sitemapParts(
+  locale: Locale,
+  source: SitemapSource,
+  count: number,
+  siteURL: string,
+): SitemapPart[] {
+  const pageCount = Math.ceil(count / maxEntriesPerPart);
+  return Array.from({ length: pageCount }, (_, index) => ({
+    url: absoluteURL(`/sitemaps/${locale}-${source}-${index + 1}.xml`, siteURL),
+  }));
+}
+
 export async function createSitemapIndex(siteURL: string): Promise<string> {
   const counts = await localePageCounts();
-  const parts: SitemapPart[] = counts.flatMap(({ locale, count: itemCount }) => {
-    const pageCount = Math.ceil(itemCount / maxEntriesPerPart);
-    return Array.from({ length: pageCount }, (_, index) => ({
-      url: absoluteURL(`/sitemaps/${locale}-${index + 1}.xml`, siteURL),
-    }));
-  });
+  const parts = counts.flatMap(({ locale, d1Count, markdownCount }) => [
+    ...sitemapParts(locale, "markdown", markdownCount, siteURL),
+    ...sitemapParts(locale, "d1", d1Count, siteURL),
+  ]);
   const entries = parts.map(({ url }) => `<sitemap><loc>${escapeXML(url)}</loc></sitemap>`);
   return `<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${entries.join("")}</sitemapindex>`;
 }
 
-async function skipSitemapEntries(
-  locale: Locale,
-  countToSkip: number,
-): Promise<{ readonly cursor: string | undefined; readonly remaining: number }> {
-  let cursor: string | undefined;
-  let remaining = countToSkip;
-
-  while (remaining > 0) {
-    const page = await listCatalog({
-      locale,
-      limit: Math.min(d1PageSize, remaining),
-      ...(cursor === undefined ? {} : { cursor }),
-    });
-    if (page.items.length === 0) return { cursor, remaining };
-    remaining -= page.items.length;
-    cursor = page.nextCursor ?? undefined;
-    if (!cursor && remaining > 0) return { cursor, remaining };
-  }
-  return { cursor, remaining };
+async function countSitemapEntries(locale: Locale, source: SitemapSource): Promise<number> {
+  return source === "markdown"
+    ? (markdownPathsByLocale.get(locale)?.length ?? 0)
+    : runContentProgram(countPublishedByLocale(locale));
 }
 
-async function readSitemapPage(locale: Locale, pageNumber: number): Promise<ReadonlyArray<string>> {
-  const skipCount = (pageNumber - 1) * maxEntriesPerPart;
-  const skipped = await skipSitemapEntries(locale, skipCount);
-  if (skipped.remaining > 0) return [];
-
-  const urls: string[] = [];
-  let cursor = skipped.cursor;
-  while (urls.length < maxEntriesPerPart) {
-    const page = await listCatalog({
-      locale,
-      limit: Math.min(d1PageSize, maxEntriesPerPart - urls.length),
-      ...(cursor === undefined ? {} : { cursor }),
-    });
-    urls.push(...page.items.map((item) => item.url));
-    cursor = page.nextCursor ?? undefined;
-    if (!cursor) break;
+async function readSitemapPage(
+  locale: Locale,
+  source: SitemapSource,
+  offset: number,
+): Promise<ReadonlyArray<string>> {
+  if (source === "markdown") {
+    return markdownPathsByLocale.get(locale)?.slice(offset, offset + maxEntriesPerPart) ?? [];
   }
-  return urls;
+
+  const slugs = await runContentProgram(listPublishedSlugs(locale, maxEntriesPerPart, offset));
+  return slugs.map((slug) => `/${locale}/posts/${slug}`);
 }
 
 export async function createSitemapPage(
   locale: Locale,
+  source: SitemapSource,
   pageNumber: number,
   siteURL: string,
 ): Promise<string | null> {
-  const counts = await localePageCounts();
-  const localeCount = counts.find((item) => item.locale === locale)?.count ?? 0;
-  const pageCount = Math.ceil(localeCount / maxEntriesPerPart);
-  if (!Number.isSafeInteger(pageNumber) || pageNumber < 1 || pageNumber > pageCount) {
-    return null;
-  }
+  if (!Number.isSafeInteger(pageNumber) || pageNumber < 1) return null;
+  const offset = (pageNumber - 1) * maxEntriesPerPart;
+  if (!Number.isSafeInteger(offset)) return null;
 
-  const paths = await readSitemapPage(locale, pageNumber);
+  const count = await countSitemapEntries(locale, source);
+  const pageCount = Math.ceil(count / maxEntriesPerPart);
+  if (pageNumber > pageCount) return null;
+
+  const paths = await readSitemapPage(locale, source, offset);
   const entries = paths.map(
     (path) => `<url><loc>${escapeXML(absoluteURL(path, siteURL))}</loc></url>`,
   );

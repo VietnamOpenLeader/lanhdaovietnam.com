@@ -139,19 +139,25 @@ test("localized Markdown and D1 pages have canonical, alternate, social, and JSO
     const indexXML = await sitemapIndex.text();
     expect(sitemapIndex.status).toBe(200);
     expect(sitemapIndex.headers.get("Content-Type")).toContain("application/xml");
-    expect(indexXML).toContain("/sitemaps/vi-1.xml");
-    expect(indexXML).toContain("/sitemaps/en-1.xml");
-    expect(indexXML).toContain("/sitemaps/zh-CN-1.xml");
+    expect(indexXML).toContain("/sitemaps/vi-markdown-1.xml");
+    expect(indexXML).toContain("/sitemaps/vi-d1-1.xml");
+    expect(indexXML).toContain("/sitemaps/en-d1-1.xml");
+    expect(indexXML).toContain("/sitemaps/zh-CN-d1-1.xml");
 
-    const sitemapPart = await fetch(`${baseURL}/sitemaps/vi-1.xml`);
-    const partXML = await sitemapPart.text();
-    expect(sitemapPart.status).toBe(200);
-    expect(partXML).toContain("/vi/library/khoi-nguon");
-    expect(partXML).toContain(`/vi/posts/${translatedContent[0]?.slug}`);
-    expect(partXML).not.toContain(draftSlug);
-    expect(partXML).not.toContain("/vi/login");
+    const markdownSitemap = await fetch(`${baseURL}/sitemaps/vi-markdown-1.xml`);
+    const markdownXML = await markdownSitemap.text();
+    expect(markdownSitemap.status).toBe(200);
+    expect(markdownXML).toContain("/vi/library/khoi-nguon");
+    expect(markdownXML).not.toContain(`/vi/posts/${translatedContent[0]?.slug}`);
+
+    const d1Sitemap = await fetch(`${baseURL}/sitemaps/vi-d1-1.xml`);
+    const d1XML = await d1Sitemap.text();
+    expect(d1Sitemap.status).toBe(200);
+    expect(d1XML).toContain(`/vi/posts/${translatedContent[0]?.slug}`);
+    expect(d1XML).not.toContain(draftSlug);
+    expect(d1XML).not.toContain("/vi/login");
     expect((await fetch(`${baseURL}/sitemaps/cn-1.xml`)).status).toBe(404);
-    expect((await fetch(`${baseURL}/sitemaps/vi-0.xml`)).status).toBe(404);
+    expect((await fetch(`${baseURL}/sitemaps/vi-d1-0.xml`)).status).toBe(404);
 
     const robots = await fetch(`${baseURL}/robots.txt`);
     expect(robots.status).toBe(200);

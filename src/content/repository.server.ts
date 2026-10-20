@@ -1,9 +1,9 @@
 import { Context, Effect } from "effect";
-import { and, desc, eq, inArray, lt, lte, or, sql } from "void/db";
+import { and, count, desc, eq, lt, lte, or, sql } from "void/db";
 import { contentPosts } from "@schema";
 import { ContentError } from "../core/errors";
 import type { ContentInput, ContentKind, Locale } from "./contracts";
-import type { Cursor } from "./pagination";
+import type { AdminCursor, Cursor } from "./pagination";
 
 export type ContentRecord = typeof contentPosts.$inferSelect;
 export type ContentMetadataRecord = Pick<
@@ -33,6 +33,18 @@ export interface ContentRepositoryShape {
     readonly limit: number;
     readonly cursor?: Cursor;
   }) => Effect.Effect<ReadonlyArray<ContentMetadataRecord>, ContentError>;
+  readonly listAdmin: (filters: {
+    readonly locale: Locale;
+    readonly kind?: ContentKind;
+    readonly limit: number;
+    readonly cursor?: AdminCursor;
+  }) => Effect.Effect<ReadonlyArray<ContentMetadataRecord>, ContentError>;
+  readonly countPublishedByLocale: (locale: Locale) => Effect.Effect<number, ContentError>;
+  readonly listPublishedSlugs: (
+    locale: Locale,
+    limit: number,
+    offset: number,
+  ) => Effect.Effect<ReadonlyArray<string>, ContentError>;
   readonly getById: (id: string) => Effect.Effect<ContentRecord, ContentError>;
   readonly getPublished: (
     locale: Locale,
@@ -41,7 +53,7 @@ export interface ContentRepositoryShape {
   readonly listPublishedTranslations: (
     translationKey: string,
   ) => Effect.Effect<ReadonlyArray<ContentMetadataRecord>, ContentError>;
-  readonly findPublishedForTranslationKeys: (
+  readonly findForTranslationKeys: (
     keys: ReadonlyArray<string>,
   ) => Effect.Effect<
     ReadonlyArray<{ readonly translationKey: string; readonly locale: Locale }>,
@@ -69,7 +81,9 @@ function readErrorMessage(error: unknown, depth = 0): string {
 
 function databaseError(error: unknown): ContentError {
   if (error instanceof ContentError) return error;
-  return /unique constraint|constraint failed/iu.test(readErrorMessage(error))
+  return /unique constraint|constraint failed|translation kind mismatch/iu.test(
+    readErrorMessage(error),
+  )
     ? new ContentError({ status: 409, code: "CONFLICT" })
     : new ContentError({ status: 500, code: "INTERNAL" });
 }
@@ -123,6 +137,62 @@ function makeRepository(database: typeof import("void/db").db): ContentRepositor
           .where(and(...conditions))
           .orderBy(desc(contentPosts.publishedAt), desc(contentPosts.id))
           .limit(limit);
+      }),
+    listAdmin: ({ locale, kind, limit, cursor }) =>
+      databaseEffect(() => {
+        const conditions = [
+          eq(contentPosts.locale, locale),
+          ...(kind ? [eq(contentPosts.kind, kind)] : []),
+          ...(cursor
+            ? [
+                or(
+                  lt(contentPosts.updatedAt, cursor.updatedAt),
+                  and(eq(contentPosts.updatedAt, cursor.updatedAt), lt(contentPosts.id, cursor.id)),
+                ),
+              ]
+            : []),
+        ];
+        return database
+          .select({
+            id: contentPosts.id,
+            translationKey: contentPosts.translationKey,
+            locale: contentPosts.locale,
+            slug: contentPosts.slug,
+            kind: contentPosts.kind,
+            title: contentPosts.title,
+            description: contentPosts.description,
+            status: contentPosts.status,
+            publishedAt: contentPosts.publishedAt,
+            startsAt: contentPosts.startsAt,
+            endsAt: contentPosts.endsAt,
+            location: contentPosts.location,
+            createdAt: contentPosts.createdAt,
+            updatedAt: contentPosts.updatedAt,
+            version: contentPosts.version,
+          })
+          .from(contentPosts)
+          .where(and(...conditions))
+          .orderBy(desc(contentPosts.updatedAt), desc(contentPosts.id))
+          .limit(limit);
+      }),
+    countPublishedByLocale: (locale) =>
+      databaseEffect(async () => {
+        const [row] = await database
+          .select({ total: count() })
+          .from(contentPosts)
+          .where(and(eq(contentPosts.locale, locale), eq(contentPosts.status, "published")));
+        return row?.total ?? 0;
+      }),
+    listPublishedSlugs: (locale, limit, offset) =>
+      databaseEffect(async () => {
+        const rows = await database
+          .select({ slug: contentPosts.slug })
+          .from(contentPosts)
+          .where(and(eq(contentPosts.locale, locale), eq(contentPosts.status, "published")))
+          .orderBy(desc(contentPosts.publishedAt), desc(contentPosts.id))
+          .limit(limit)
+          .offset(offset);
+        return rows.map((row) => row.slug);
       }),
     getById: (id) =>
       databaseEffect(async () => {
@@ -179,7 +249,7 @@ function makeRepository(database: typeof import("void/db").db): ContentRepositor
           )
           .orderBy(desc(contentPosts.locale)),
       ),
-    findPublishedForTranslationKeys: (keys) => {
+    findForTranslationKeys: (keys) => {
       if (keys.length === 0) return Effect.succeed([]);
       return databaseEffect(() =>
         database
@@ -190,8 +260,9 @@ function makeRepository(database: typeof import("void/db").db): ContentRepositor
           .from(contentPosts)
           .where(
             and(
-              inArray(contentPosts.translationKey, [...keys]),
-              eq(contentPosts.status, "published"),
+              sql`${contentPosts.translationKey} IN (
+                SELECT value FROM json_each(${JSON.stringify(keys)})
+              )`,
             ),
           ),
       );

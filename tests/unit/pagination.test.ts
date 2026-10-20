@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
 import {
+  encodeAdminCursor,
   encodeCursor,
   mergeSummaries,
+  parseAdminCursor,
   parseCursor,
   type ContentSummary,
 } from "../../src/content/pagination";
@@ -16,6 +18,7 @@ function summary(
   return {
     key,
     source,
+    translationKey: key,
     locale,
     slug: key.replace(/^[^:]+:/u, ""),
     kind,
@@ -78,4 +81,18 @@ test("cursor is bound to the locale and kind filters", () => {
       { locale: "vi", kind: null },
     ),
   ).toThrow();
+});
+
+test("admin cursor is bound to its locale and kind filters", () => {
+  const cursor = {
+    v: 1 as const,
+    locale: "vi" as const,
+    kind: null,
+    updatedAt: "2026-10-19T00:00:00.000Z",
+    id: "post-1",
+  };
+  const encoded = encodeAdminCursor(cursor);
+
+  expect(parseAdminCursor(encoded, { locale: "vi", kind: null })).toEqual(cursor);
+  expect(() => parseAdminCursor(encoded, { locale: "en", kind: null })).toThrow();
 });

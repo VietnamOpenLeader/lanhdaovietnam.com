@@ -27,6 +27,7 @@ export const loader = defineHandler(async (context) => {
     const entry: ContentSummary = {
       key: `d1:${record.id}`,
       source: "d1",
+      translationKey: record.translationKey,
       locale: record.locale,
       slug: record.slug,
       kind: record.kind,

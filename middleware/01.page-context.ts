@@ -1,7 +1,6 @@
 import { defineMiddleware } from "void";
 import { getConfiguredSocialProviders } from "../src/auth/admin.server";
-import { markdownIndex } from "../src/content/manifest.server";
-import { markdownTranslations } from "../src/content/markdown";
+import { getMarkdownEntry, getMarkdownTranslations } from "../src/content/manifest.server";
 import { loadMessages } from "../src/i18n/runtime";
 import { localeFromPath, type PageContext } from "../src/i18n/page-context";
 
@@ -19,9 +18,9 @@ export default defineMiddleware(async (context, next) => {
   }
 
   const locale = localeFromPath(url.pathname);
-  const markdownPage = markdownIndex.find((entry) => entry.url === url.pathname);
+  const markdownPage = getMarkdownEntry(url.pathname);
   const translationLinks = markdownPage
-    ? markdownTranslations(markdownIndex, markdownPage.translationKey)
+    ? getMarkdownTranslations(markdownPage.translationKey)
     : undefined;
   const pageContext: PageContext = {
     locale,

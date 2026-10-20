@@ -2,7 +2,12 @@ import { realpath, readFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 import { Data, Effect, Schema } from "effect";
-import { contentInputSchema, updateContentSchema } from "../src/content/contracts";
+import {
+  contentInputSchema,
+  contentKinds,
+  locales,
+  updateContentSchema,
+} from "../src/content/contracts";
 import { parseMarkdownContent } from "../src/content/frontmatter";
 import {
   contentCheckResultSchema,
@@ -11,6 +16,8 @@ import {
 } from "../src/content/contracts";
 import { ContentApiFailure, createContentClient } from "./content-client";
 import { scanLocalContent } from "./check-content";
+
+const maxConcurrentCheckRequests = 5;
 
 interface ContentCLIIO {
   readonly stdout: (text: string) => void;
@@ -210,23 +217,19 @@ async function runList(
 ): Promise<void> {
   assertPositionals(args.positionals, 0);
   assertAllowedOptions(args.values, ["locale", "kind", "limit", "cursor", "admin"]);
-  const locale = args.values.locale;
-  if (locale !== "vi" && locale !== "en" && locale !== "zh-CN") {
+  const locale = locales.find((candidate) => candidate === args.values.locale);
+  if (!locale) {
     return failArguments("list requires --locale vi, en, or zh-CN.");
   }
-  if (
-    args.values.kind !== undefined &&
-    args.values.kind !== "article" &&
-    args.values.kind !== "news" &&
-    args.values.kind !== "event"
-  ) {
+  const kind = contentKinds.find((candidate) => candidate === args.values.kind);
+  if (args.values.kind !== undefined && !kind) {
     return failArguments("Invalid --kind value.");
   }
   const limit =
     args.values.limit === undefined ? 20 : parsePositiveInteger(args.values.limit, "limit");
   if (limit > 100) return failArguments("--limit must not exceed 100.");
   const query = new URLSearchParams({ locale, limit: String(limit) });
-  if (args.values.kind) query.set("kind", args.values.kind);
+  if (kind) query.set("kind", kind);
   if (args.values.cursor !== undefined) query.set("cursor", args.values.cursor);
   if (args.values.admin) query.set("view", "admin");
   const client = buildClient(env, args.values.admin === true);
@@ -345,18 +348,7 @@ async function runCheck(
 
   const client = buildClient(env, true, env.CONTENT_CHECK_TOKEN ?? env.CONTENT_API_TOKEN);
   const deployedCheck = decodeContentCheckResult(await client.request("/api/content-check"));
-  const candidateBatches = splitCandidates(entries);
-  const candidateChecks = await Promise.all(
-    candidateBatches.map(async (batch) =>
-      decodeContentCheckResult(
-        await client.request("/api/content-check", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ entries: batch }),
-        }),
-      ),
-    ),
-  );
+  const candidateChecks = await checkCandidateBatches(client, splitCandidates(entries));
   const candidateConflictKeys = [
     ...new Set(candidateChecks.flatMap((result) => result.conflictKeys)),
   ];
@@ -393,8 +385,8 @@ function projectContentMetadata(
   };
 }
 
-function splitCandidates(entries: ReadonlyArray<ContentMetadata>): ContentMetadata[][] {
-  const batchSize = 500;
+export function splitCandidates(entries: ReadonlyArray<ContentMetadata>): ContentMetadata[][] {
+  const batchSize = 100;
   const batches: ContentMetadata[][] = [];
   for (let offset = 0; offset < entries.length; offset += batchSize) {
     batches.push(entries.slice(offset, offset + batchSize));
@@ -413,6 +405,29 @@ function decodeContentCheckResult(value: unknown): ContentCheckResult {
       message: "Content API returned an invalid preflight response.",
     });
   }
+}
+
+async function checkCandidateBatches(
+  client: ReturnType<typeof createContentClient>,
+  batches: ReadonlyArray<ReadonlyArray<ContentMetadata>>,
+): Promise<ContentCheckResult[]> {
+  const results: ContentCheckResult[] = [];
+  for (let offset = 0; offset < batches.length; offset += maxConcurrentCheckRequests) {
+    const requestGroup = batches.slice(offset, offset + maxConcurrentCheckRequests);
+    const checked = await Promise.all(
+      requestGroup.map(async (entries) =>
+        decodeContentCheckResult(
+          await client.request("/api/content-check", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ entries }),
+          }),
+        ),
+      ),
+    );
+    results.push(...checked);
+  }
+  return results;
 }
 
 async function executeCommand(

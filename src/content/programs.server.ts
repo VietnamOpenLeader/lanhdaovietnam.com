@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import type { ContentInput, ContentKind, Locale } from "./contracts";
-import type { Cursor } from "./pagination";
+import type { AdminCursor, Cursor } from "./pagination";
 import { ContentRepository } from "./repository.server";
 
 export const listContent = (filters: {
@@ -13,6 +13,29 @@ export const listContent = (filters: {
   Effect.gen(function* () {
     const repository = yield* ContentRepository;
     return yield* repository.list(filters);
+  });
+
+export const listAdminContent = (filters: {
+  readonly locale: Locale;
+  readonly kind?: ContentKind;
+  readonly limit: number;
+  readonly cursor?: AdminCursor;
+}) =>
+  Effect.gen(function* () {
+    const repository = yield* ContentRepository;
+    return yield* repository.listAdmin(filters);
+  });
+
+export const countPublishedByLocale = (locale: Locale) =>
+  Effect.gen(function* () {
+    const repository = yield* ContentRepository;
+    return yield* repository.countPublishedByLocale(locale);
+  });
+
+export const listPublishedSlugs = (locale: Locale, limit: number, offset: number) =>
+  Effect.gen(function* () {
+    const repository = yield* ContentRepository;
+    return yield* repository.listPublishedSlugs(locale, limit, offset);
   });
 
 export const createContent = (input: ContentInput) =>
@@ -33,10 +56,10 @@ export const listPublishedTranslations = (translationKey: string) =>
     return yield* repository.listPublishedTranslations(translationKey);
   });
 
-export const findPublishedForTranslationKeys = (keys: ReadonlyArray<string>) =>
+export const findForTranslationKeys = (keys: ReadonlyArray<string>) =>
   Effect.gen(function* () {
     const repository = yield* ContentRepository;
-    return yield* repository.findPublishedForTranslationKeys(keys);
+    return yield* repository.findForTranslationKeys(keys);
   });
 
 export const getContent = (id: string) =>

@@ -1,6 +1,12 @@
-import { markdownIndex } from "./manifest.server";
-import { markdownSummary, markdownTranslations } from "./markdown";
-import type { ContentKind, ContentSource, Locale } from "./contracts";
+import { getMarkdownTranslations, markdownIndex } from "./manifest.server";
+import { markdownSummary } from "./markdown";
+import {
+  contentKinds,
+  locales,
+  type ContentKind,
+  type ContentSource,
+  type Locale,
+} from "./contracts";
 import {
   compareSummaries,
   encodeCursor,
@@ -34,9 +40,9 @@ function partitionKey(locale: Locale, kind: ContentKind | null): string {
 
 function buildMarkdownPartitions(): ReadonlyMap<string, ReadonlyArray<ContentSummary>> {
   const partitions = new Map<string, ContentSummary[]>();
-  for (const locale of ["vi", "en", "zh-CN"] satisfies ReadonlyArray<Locale>) {
+  for (const locale of locales) {
     partitions.set(partitionKey(locale, null), []);
-    for (const kind of ["article", "news", "event"] satisfies ReadonlyArray<ContentKind>) {
+    for (const kind of contentKinds) {
       partitions.set(partitionKey(locale, kind), []);
     }
   }
@@ -75,6 +81,7 @@ function toD1Summary(
   return {
     key: `d1:${record.id}`,
     source: "d1",
+    translationKey: record.translationKey,
     locale: record.locale,
     slug: record.slug,
     kind: record.kind,
@@ -133,7 +140,7 @@ export async function listTranslations(
 ): Promise<ReadonlyArray<ContentSummary>> {
   const summaries =
     source === "markdown"
-      ? markdownTranslations(markdownIndex, translationKey)
+      ? getMarkdownTranslations(translationKey)
       : (await runContentProgram(listPublishedTranslations(translationKey))).flatMap((record) => {
           const summary = d1Summary(record);
           return summary ? [summary] : [];

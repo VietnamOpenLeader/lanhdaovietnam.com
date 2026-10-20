@@ -1,5 +1,5 @@
 import type { Messages } from "@lingui/core";
-import type { Locale } from "./locales";
+import { parseLocale, type Locale } from "./locales";
 import type { SocialProvider } from "../auth/social-providers";
 import type { ContentSummary } from "../content/pagination";
 
@@ -13,5 +13,5 @@ export interface PageContext {
 
 export function localeFromPath(path: string): Locale | null {
   const pathLocale = path.split("/")[1];
-  return pathLocale === "vi" || pathLocale === "en" || pathLocale === "zh-CN" ? pathLocale : null;
+  return parseLocale(pathLocale);
 }

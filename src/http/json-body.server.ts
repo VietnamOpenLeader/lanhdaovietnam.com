@@ -1,6 +1,6 @@
 import { ContentError } from "../core/errors";
 
-export const maxContentRequestBytes = 216_384;
+export const maxContentRequestBytes = 1_310_720;
 
 export async function readJsonBody(
   request: Request,
