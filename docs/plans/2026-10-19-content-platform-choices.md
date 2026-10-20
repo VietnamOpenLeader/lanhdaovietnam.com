@@ -33,7 +33,7 @@ The implementation follows the approved plan. These choices fill in details the 
 
 ## Verification boundary
 
-Playwright E2E ran successfully against the installed system Chrome in desktop and mobile projects. The plan's local browser-install command (`bunx playwright install --with-deps chromium`) was not run because that would install/download outside the worktree; CI contains and runs that exact command. This is a documented verification substitution, not a claim that the install command passed locally.
+Playwright E2E ran successfully against Playwright's downloaded Chromium in desktop and mobile projects. The exact local browser-install command (`bunx playwright install --with-deps chromium`) ran after explicit approval and downloaded Chromium, Headless Shell, and FFmpeg to the system Playwright cache; macOS does not install Linux OS packages through its `--with-deps` path. This is local command evidence only, not evidence that GitHub CI passed on the final commit.
 
 ## Quality gate
 
@@ -105,6 +105,15 @@ Playwright E2E ran successfully against the installed system Chrome in desktop a
 - **Decision:** Count title, description, and location limits in Unicode code points so Effect validation and D1 `length(TEXT)` agree; keep the body limit byte-based.
 - **Reach:** API and direct D1 writes enforce the same maximum text lengths. User-facing grapheme clusters containing combining marks may contain more than one code point.
 - **Verdict / confidence:** sound / medium.
+
+### Reject NUL before text reaches SQLite length checks
+
+- **When:** Final D1/application contract review.
+- **Scenario:** SQLite `length(TEXT)` stops at U+0000 while JavaScript counts code points after it, allowing direct D1 writes to bypass title, description, and location limits.
+- **Plan gap:** The text contract did not exclude NUL or account for SQLite's string-function behavior.
+- **Decision:** Reject U+0000 in all bounded text fields at the Effect boundary and use `instr(column, char(0)) = 0` in D1 constraints. Legacy rows with NUL are repaired only when they still match untouched version-1 imports; other existing rows fail the preflight guard.
+- **Reach:** Application validation, direct D1 writes, and forward migration share one NUL policy without overwriting operator-edited imports.
+- **Verdict / confidence:** sound / high.
 
 ### Use a bounded wire-body allowance
 

@@ -12,10 +12,16 @@ export type ContentKind = (typeof contentKinds)[number];
 export type ContentStatus = (typeof contentStatuses)[number];
 export type ContentSource = "markdown" | "d1";
 
+function validateNoNul(value: string): string | undefined {
+  return value.includes("\u0000") ? "Text must not contain NUL" : undefined;
+}
+
 const nonEmptyString = (maxLength: number) =>
   Schema.String.check(
     Schema.isMinLength(1),
     Schema.makeFilter((value) => {
+      const nulError = validateNoNul(value);
+      if (nulError) return nulError;
       if (value.trim().length === 0) return "Value must not be blank";
       return Array.from(value).length <= maxLength
         ? undefined
@@ -91,6 +97,7 @@ const strictParseOptions = { onExcessProperty: "error" } as const;
 
 export const contentMetadataSchema = metadataShape.check(Schema.makeFilter(validateMetadata));
 export const contentBodySchema = Schema.String.check(
+  Schema.makeFilter((body) => validateNoNul(body)),
   Schema.makeFilter((body) =>
     body.trim().length > 0 ? undefined : "Content body must not be blank",
   ),

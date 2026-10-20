@@ -121,8 +121,10 @@ legacy_post_state AS (
 		`id`,
 		'legacy-post-' || `id` AS `content_id`,
 		`parsed_created_at`,
-		length(trim(`title`, char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) BETWEEN 1 AND 200 AS `valid_title`,
-		length(trim(`body`, char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) > 0
+		instr(`title`, char(0)) = 0
+			AND length(trim(`title`, char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) BETWEEN 1 AND 200 AS `valid_title`,
+		instr(`body`, char(0)) = 0
+			AND length(trim(`body`, char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) > 0
 			AND length(CAST(`body` AS BLOB)) <= 204800 AS `valid_body`
 	FROM `legacy_timestamp_validity`
 )
@@ -189,11 +191,17 @@ SELECT CASE
 	WHEN EXISTS (
 		SELECT 1 FROM `content_posts`
 		WHERE length(trim(`body`, char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) = 0
+			OR instr(`body`, char(0)) > 0
 			OR length(trim(`title`, char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) = 0
+			OR instr(`title`, char(0)) > 0
 			OR length(trim(`description`, char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) = 0
+			OR instr(`description`, char(0)) > 0
 			OR (
 				`kind` = 'event'
-				AND length(trim(`location`, char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) = 0
+				AND (
+					length(trim(`location`, char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) = 0
+					OR instr(`location`, char(0)) > 0
+				)
 			)
 	) THEN 0
 	WHEN EXISTS (
@@ -224,11 +232,11 @@ CREATE TABLE `__new_content_posts` (
 	CONSTRAINT "content_locale_valid" CHECK("locale" IN ('vi', 'en', 'zh-CN')),
 	CONSTRAINT "content_kind_valid" CHECK("kind" IN ('article', 'news', 'event')),
 	CONSTRAINT "content_status_valid" CHECK("status" IN ('draft', 'published')),
-	CONSTRAINT "content_title_nonempty" CHECK(length("title") BETWEEN 1 AND 200 AND length(trim("title", char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) > 0),
-	CONSTRAINT "content_description_nonempty" CHECK(length("description") BETWEEN 1 AND 500 AND length(trim("description", char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) > 0),
+	CONSTRAINT "content_title_nonempty" CHECK(instr("title", char(0)) = 0 AND length("title") BETWEEN 1 AND 200 AND length(trim("title", char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) > 0),
+	CONSTRAINT "content_description_nonempty" CHECK(instr("description", char(0)) = 0 AND length("description") BETWEEN 1 AND 500 AND length(trim("description", char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) > 0),
 	CONSTRAINT "content_body_size" CHECK(length(CAST("body" AS BLOB)) <= 204800),
-	CONSTRAINT "content_body_nonempty" CHECK(length(trim("body", char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) > 0),
-	CONSTRAINT "content_event_location_nonempty" CHECK("kind" != 'event' OR (length("location") BETWEEN 1 AND 200 AND length(trim("location", char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) > 0)),
+	CONSTRAINT "content_body_nonempty" CHECK(instr("body", char(0)) = 0 AND length(trim("body", char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) > 0),
+	CONSTRAINT "content_event_location_nonempty" CHECK("kind" != 'event' OR (instr("location", char(0)) = 0 AND length("location") BETWEEN 1 AND 200 AND length(trim("location", char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))) > 0)),
 	CONSTRAINT "content_version_positive" CHECK("version" > 0),
 	CONSTRAINT "content_published_has_date" CHECK("status" != 'published' OR "published_at" IS NOT NULL),
 	CONSTRAINT "content_event_fields" CHECK(("kind" = 'event' AND "starts_at" IS NOT NULL AND "location" IS NOT NULL)

@@ -1,7 +1,11 @@
 import { expect, test } from "bun:test";
 import { Schema } from "effect";
 import { contentInputSchema, maxBodyBytes } from "../../src/content/contracts";
-import { publishedPost } from "../fixtures/content";
+import {
+  ecmascriptTrimWhitespace,
+  nonEcmascriptWhitespace,
+  publishedPost,
+} from "../fixtures/content";
 
 const decode = Schema.decodeUnknownSync(contentInputSchema);
 
@@ -48,4 +52,55 @@ test("text limits count Unicode code points consistently with SQLite", () => {
   expect(() => decode({ ...publishedPost, title: "😀".repeat(201) })).toThrow();
   expect(() => decode({ ...publishedPost, description: "😀".repeat(500) })).not.toThrow();
   expect(() => decode({ ...publishedPost, description: "😀".repeat(501) })).toThrow();
+});
+
+test("rejects NUL in bounded content text", () => {
+  const nulPositions = ["\u0000abc", "a\u0000bc", "abc\u0000"];
+
+  for (const value of nulPositions) {
+    expect(() => decode({ ...publishedPost, title: value })).toThrow();
+    expect(() => decode({ ...publishedPost, description: value })).toThrow();
+    expect(() => decode({ ...publishedPost, body: value })).toThrow();
+    expect(() =>
+      decode({
+        ...publishedPost,
+        kind: "event",
+        startsAt: "2026-11-20T10:00:00.000Z",
+        location: value,
+      }),
+    ).toThrow();
+  }
+});
+
+test("trims the complete ECMAScript whitespace set but preserves non-trimmed separators", () => {
+  for (const whitespace of ecmascriptTrimWhitespace) {
+    expect(() => decode({ ...publishedPost, title: whitespace })).toThrow();
+    expect(() => decode({ ...publishedPost, description: whitespace })).toThrow();
+    expect(() => decode({ ...publishedPost, body: whitespace })).toThrow();
+    expect(() =>
+      decode({
+        ...publishedPost,
+        kind: "event",
+        startsAt: "2026-11-20T10:00:00.000Z",
+        location: whitespace,
+      }),
+    ).toThrow();
+  }
+
+  expect(
+    decode({
+      ...publishedPost,
+      title: nonEcmascriptWhitespace,
+      description: nonEcmascriptWhitespace,
+      body: nonEcmascriptWhitespace,
+    }),
+  ).toBeDefined();
+  expect(
+    decode({
+      ...publishedPost,
+      kind: "event",
+      startsAt: "2026-11-20T10:00:00.000Z",
+      location: nonEcmascriptWhitespace,
+    }),
+  ).toBeDefined();
 });

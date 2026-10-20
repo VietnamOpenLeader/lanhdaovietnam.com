@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
 import { applyProjectMigrations } from "../migration-fixture";
+import { ecmascriptTrimWhitespace, nonEcmascriptWhitespace } from "../fixtures/content";
 
 interface ContentRecord {
   id: string;
@@ -249,12 +250,20 @@ test("forward migration downgrades malformed legacy dates and blank bodies", asy
     "\u00a0\u2003\u2028\u2029\ufeff",
     "2026-10-19 10:11:12",
   ]);
+  db.run("INSERT INTO posts (title, body, created_at) VALUES (?, ?, ?)", [
+    "NUL body",
+    "Visible\u0000hidden",
+    "2026-10-19 10:11:12",
+  ]);
   await applyProjectMigrations(db, { after: 0, through: 2 });
 
   expect(db.query("SELECT status FROM content_posts WHERE id = 'legacy-post-1'").get()).toEqual({
     status: "published",
   });
   expect(db.query("SELECT status FROM content_posts WHERE id = 'legacy-post-2'").get()).toEqual({
+    status: "published",
+  });
+  expect(db.query("SELECT status FROM content_posts WHERE id = 'legacy-post-3'").get()).toEqual({
     status: "published",
   });
   expect(
@@ -286,12 +295,21 @@ test("forward migration downgrades malformed legacy dates and blank bodies", asy
   });
   expect(
     db
+      .query("SELECT body, status, published_at FROM content_posts WHERE id = 'legacy-post-3'")
+      .get(),
+  ).toEqual({
+    body: "Original body remains in the legacy posts table.",
+    status: "draft",
+    published_at: null,
+  });
+  expect(
+    db
       .query("SELECT tag FROM __test_migration_history WHERE tag = ?")
       .get("20261020122833_true_korath"),
   ).toEqual({
     tag: "20261020122833_true_korath",
   });
-  expect(db.query("SELECT COUNT(*) AS total FROM posts").get()).toEqual({ total: 2 });
+  expect(db.query("SELECT COUNT(*) AS total FROM posts").get()).toEqual({ total: 3 });
 
   db.close();
 });
@@ -330,6 +348,7 @@ test("forward migration preserves legacy content edited after the initial backfi
 
 test("content constraints reject invalid locales, unpublished dates, event order, and versions", async () => {
   const db = await migratedDatabase();
+  const nulPositions = ["\u0000abc", "a\u0000bc", "abc\u0000"];
 
   expect(() => insertRecord(db, { locale: "cn" })).toThrow();
   expect(() => insertRecord(db, { status: "published", published_at: null })).toThrow();
@@ -342,7 +361,7 @@ test("content constraints reject invalid locales, unpublished dates, event order
     }),
   ).toThrow();
   expect(() => insertRecord(db, { body: "  \n\t" })).toThrow();
-  for (const whitespace of ["\u00a0", "\u2003", "\u2028\u2029", "\ufeff"]) {
+  for (const whitespace of ecmascriptTrimWhitespace) {
     expect(() => insertRecord(db, { body: whitespace })).toThrow();
     expect(() => insertRecord(db, { title: whitespace })).toThrow();
     expect(() => insertRecord(db, { description: whitespace })).toThrow();
@@ -351,6 +370,18 @@ test("content constraints reject invalid locales, unpublished dates, event order
   expect(() => insertRecord(db, { title: "😀".repeat(201) })).toThrow();
   expect(() => insertRecord(db, { description: `${"x".repeat(500)} ` })).toThrow();
   expect(() => insertRecord(db, { description: "😀".repeat(501) })).toThrow();
+  for (const value of nulPositions) {
+    expect(() => insertRecord(db, { title: value })).toThrow();
+    expect(() => insertRecord(db, { description: value })).toThrow();
+    expect(() => insertRecord(db, { body: value })).toThrow();
+    expect(() =>
+      insertRecord(db, {
+        kind: "event",
+        starts_at: "2026-10-20T00:00:00.000Z",
+        location: value,
+      }),
+    ).toThrow();
+  }
   expect(() =>
     insertRecord(db, {
       kind: "event",
@@ -372,6 +403,15 @@ test("content constraints reject invalid locales, unpublished dates, event order
       location: "😀".repeat(201),
     }),
   ).toThrow();
+  for (const location of nulPositions) {
+    expect(() =>
+      insertRecord(db, {
+        kind: "event",
+        starts_at: "2026-10-20T00:00:00.000Z",
+        location,
+      }),
+    ).toThrow();
+  }
   insertRecord(db, {
     id: "emoji-title",
     translation_key: "emoji-title",
@@ -383,6 +423,22 @@ test("content constraints reject invalid locales, unpublished dates, event order
     translation_key: "emoji-description",
     slug: "emoji-description",
     description: "😀".repeat(500),
+  });
+  insertRecord(db, {
+    id: "non-trimmed-whitespace",
+    translation_key: "non-trimmed-whitespace",
+    slug: "non-trimmed-whitespace",
+    title: nonEcmascriptWhitespace,
+    description: nonEcmascriptWhitespace,
+    body: nonEcmascriptWhitespace,
+  });
+  insertRecord(db, {
+    id: "non-trimmed-location",
+    translation_key: "non-trimmed-location",
+    slug: "non-trimmed-location",
+    kind: "event",
+    starts_at: "2026-10-20T00:00:00.000Z",
+    location: nonEcmascriptWhitespace,
   });
   expect(() => insertRecord(db, { version: 0 })).toThrow();
 
@@ -519,7 +575,7 @@ test("migration refuses pre-existing blank bodies before rebuilding the content 
 });
 
 test("migration refuses ECMAScript-whitespace-only existing bodies before rebuilding", async () => {
-  const whitespaceBodies = ["\u00a0", "\u2003", "\u2028\u2029", "\ufeff"];
+  const whitespaceBodies = ecmascriptTrimWhitespace;
 
   for (const [index, body] of whitespaceBodies.entries()) {
     const db = await databaseBeforeIntegrityMigration();
@@ -574,6 +630,35 @@ test("migration refuses pre-existing blank metadata before rebuilding", async ()
 
     db.close();
   }
+});
+
+test("migration refuses NUL-bearing nonlegacy metadata without losing the row", async () => {
+  const db = new Database(":memory:");
+  await applyProjectMigrations(db, { through: 2 });
+  insertRecord(db, { id: "nul-metadata", title: "A\u0000B" });
+  const original = db.query("SELECT * FROM content_posts WHERE id = 'nul-metadata'").get();
+
+  await expect(applyProjectMigrations(db, { after: 2 })).rejects.toThrow(
+    /CHECK constraint failed/u,
+  );
+  expect(db.query("SELECT * FROM content_posts WHERE id = 'nul-metadata'").get()).toEqual(original);
+  expect(
+    db
+      .query("SELECT tag FROM __test_migration_history WHERE tag = ?")
+      .get("20261020122833_true_korath"),
+  ).toBeNull();
+  expect(
+    db
+      .query(
+        "SELECT COUNT(*) AS total FROM sqlite_master WHERE name LIKE '__ivt_migration_20261020122833_%'",
+      )
+      .get(),
+  ).toEqual({ total: 0 });
+  expect(
+    db.query("SELECT name FROM sqlite_master WHERE name = '__new_content_posts'").get(),
+  ).toBeNull();
+
+  db.close();
 });
 
 test("migration refuses pre-existing mixed-kind translation groups before rebuilding", async () => {
