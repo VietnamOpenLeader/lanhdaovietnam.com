@@ -1,0 +1,470 @@
+{
+  "content.filter.article": {
+    "message": "Bài viết",
+    "placeholders": {},
+    "comments": [
+      "Bộ lọc nội dung bài viết."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Bài viết"
+  },
+  "content.next": {
+    "message": "Bài viết tiếp theo",
+    "placeholders": {},
+    "comments": [
+      "Nhãn link đến trang kế tiếp trong danh sách."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Bài viết tiếp theo"
+  },
+  "content.heading": {
+    "message": "Bài viết và tin tức",
+    "placeholders": {},
+    "comments": [
+      "Tiêu đề danh mục nội dung đa ngôn ngữ."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Bài viết và tin tức"
+  },
+  "auth.signedIn": {
+    "message": "Bạn đã đăng nhập.",
+    "placeholders": {},
+    "comments": [
+      "Thông báo trang tài khoản khi người dùng đã đăng nhập."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Bạn đã đăng nhập."
+  },
+  "content.eventStartsAt": {
+    "message": "Bắt đầu",
+    "placeholders": {},
+    "comments": [
+      "Nhãn thời gian bắt đầu sự kiện."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Bắt đầu"
+  },
+  "language.unavailable": {
+    "message": "Chưa có bản dịch cho ngôn ngữ này.",
+    "placeholders": {},
+    "comments": [
+      "Thông báo khi một bài viết chưa được dịch sang ngôn ngữ yêu cầu."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Chưa có bản dịch cho ngôn ngữ này."
+  },
+  "content.empty": {
+    "message": "Chưa có nội dung.",
+    "placeholders": {},
+    "comments": [
+      "Thông báo thư viện đang trống cho ngôn ngữ hiện tại."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Chưa có nội dung."
+  },
+  "auth.loginModeSwitch": {
+    "message": "Chưa có tài khoản? Tạo tài khoản",
+    "placeholders": {},
+    "comments": [
+      "Liên kết chuyển từ đăng nhập sang đăng ký."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Chưa có tài khoản? Tạo tài khoản"
+  },
+  "auth.signupModeSwitch": {
+    "message": "Đã có tài khoản? Đăng nhập",
+    "placeholders": {},
+    "comments": [
+      "Liên kết chuyển từ đăng ký sang đăng nhập."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Đã có tài khoản? Đăng nhập"
+  },
+  "auth.pending": {
+    "message": "Đang đăng nhập…",
+    "placeholders": {},
+    "comments": [
+      "Thông báo trạng thái trong lúc gửi yêu cầu đăng nhập."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Đang đăng nhập…"
+  },
+  "auth.signOutPending": {
+    "message": "Đang đăng xuất…",
+    "placeholders": {},
+    "comments": [
+      "Nhãn trạng thái khi kết thúc phiên."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Đang đăng xuất…"
+  },
+  "auth.signIn": {
+    "message": "Đăng nhập",
+    "placeholders": {},
+    "comments": [
+      "Nhãn nút gửi form đăng nhập."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Đăng nhập"
+  },
+  "auth.socialUnavailable": {
+    "message": "Đăng nhập bằng {provider} chưa được cấu hình.",
+    "placeholders": {},
+    "comments": [
+      "Lý do nút nhà cung cấp mạng xã hội bị vô hiệu hóa."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Đăng nhập bằng {provider} chưa được cấu hình."
+  },
+  "auth.loginTitle": {
+    "message": "Đăng nhập vào tài khoản của bạn",
+    "placeholders": {},
+    "comments": [
+      "Tiêu đề trang xác thực."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Đăng nhập vào tài khoản của bạn"
+  },
+  "auth.signOut": {
+    "message": "Đăng xuất",
+    "placeholders": {},
+    "comments": [
+      "Nhãn nút đăng xuất."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Đăng xuất"
+  },
+  "site.description": {
+    "message": "Đi về cội nguồn, định hình tương lai.",
+    "placeholders": {},
+    "comments": [
+      "Câu giới thiệu ngắn của website."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Đi về cội nguồn, định hình tương lai."
+  },
+  "content.eventLocation": {
+    "message": "Địa điểm",
+    "placeholders": {},
+    "comments": [
+      "Nhãn địa điểm tổ chức sự kiện."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Địa điểm"
+  },
+  "content.readMore": {
+    "message": "Đọc tiếp",
+    "placeholders": {},
+    "comments": [
+      "Liên kết mở bài viết đầy đủ."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Đọc tiếp"
+  },
+  "auth.email": {
+    "message": "Email",
+    "placeholders": {},
+    "comments": [
+      "Nhãn trường nhập email."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Email"
+  },
+  "language.en": {
+    "message": "English",
+    "placeholders": {},
+    "comments": [
+      "Tên ngôn ngữ tiếng Anh."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "English"
+  },
+  "auth.socialHeading": {
+    "message": "Hoặc tiếp tục với",
+    "placeholders": {},
+    "comments": [
+      "Tiêu đề nhóm nút đăng nhập mạng xã hội."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Hoặc tiếp tục với"
+  },
+  "content.eventEndsAt": {
+    "message": "Kết thúc",
+    "placeholders": {},
+    "comments": [
+      "Nhãn thời gian kết thúc sự kiện."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Kết thúc"
+  },
+  "auth.error": {
+    "message": "Không thể xử lý yêu cầu. Vui lòng thử lại.",
+    "placeholders": {},
+    "comments": [
+      "Thông báo lỗi đăng nhập chung; không hiển thị nội dung lỗi nội bộ."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Không thể xử lý yêu cầu. Vui lòng thử lại."
+  },
+  "site.title": {
+    "message": "Lãnh đạo Việt Nam",
+    "placeholders": {},
+    "comments": [
+      "Tên sản phẩm hiển thị trong tiêu đề trang chủ."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Lãnh đạo Việt Nam"
+  },
+  "auth.password": {
+    "message": "Mật khẩu",
+    "placeholders": {},
+    "comments": [
+      "Nhãn trường nhập mật khẩu."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Mật khẩu"
+  },
+  "language.select": {
+    "message": "Ngôn ngữ",
+    "placeholders": {},
+    "comments": [
+      "Nhãn vùng chọn ngôn ngữ."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Ngôn ngữ"
+  },
+  "content.filter.event": {
+    "message": "Sự kiện",
+    "placeholders": {},
+    "comments": [
+      "Bộ lọc nội dung sự kiện."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Sự kiện"
+  },
+  "auth.signUp": {
+    "message": "Tạo tài khoản",
+    "placeholders": {},
+    "comments": [
+      "Nhãn nút gửi form đăng ký."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Tạo tài khoản"
+  },
+  "auth.signupTitle": {
+    "message": "Tạo tài khoản",
+    "placeholders": {},
+    "comments": [
+      "Tiêu đề khi người dùng chọn đăng ký."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Tạo tài khoản"
+  },
+  "content.filter.all": {
+    "message": "Tất cả",
+    "placeholders": {},
+    "comments": [
+      "Bộ lọc hiển thị mọi loại nội dung."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Tất cả"
+  },
+  "auth.name": {
+    "message": "Tên hiển thị",
+    "placeholders": {},
+    "comments": [
+      "Nhãn trường nhập tên trong form đăng ký."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Tên hiển thị"
+  },
+  "nav.library": {
+    "message": "Thư viện",
+    "placeholders": {},
+    "comments": [
+      "Mục điều hướng đến thư viện bài viết."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Thư viện"
+  },
+  "language.vi": {
+    "message": "Tiếng Việt",
+    "placeholders": {},
+    "comments": [
+      "Tên ngôn ngữ tiếng Việt."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Tiếng Việt"
+  },
+  "content.filter.news": {
+    "message": "Tin tức",
+    "placeholders": {},
+    "comments": [
+      "Bộ lọc nội dung tin tức."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Tin tức"
+  },
+  "nav.home": {
+    "message": "Trang chủ",
+    "placeholders": {},
+    "comments": [
+      "Mục điều hướng đến trang chủ."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Trang chủ"
+  },
+  "language.zhCN": {
+    "message": "简体中文",
+    "placeholders": {},
+    "comments": [
+      "Tên tiếng Trung giản thể."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "简体中文"
+  }
+}

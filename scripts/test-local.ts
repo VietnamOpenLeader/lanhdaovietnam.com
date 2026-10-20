@@ -1,0 +1,225 @@
+import { createHash, randomUUID } from "node:crypto";
+import { cpSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
+import { createServer } from "node:net";
+import { join, relative, resolve } from "node:path";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+const sourceRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const scratchRoot = join(sourceRoot, ".void", "test-projects");
+const copyDirectories = [
+  "db",
+  "middleware",
+  "pages",
+  "public",
+  "routes",
+  "scripts",
+  "src",
+  "tests",
+];
+const rootConfigFiles = [
+  ".gitignore",
+  "package.json",
+  "bun.lock",
+  "tsconfig.json",
+  "vite.config.mts",
+  "void.config.ts",
+  "env.ts",
+  "auth.ts",
+  "playwright.config.ts",
+];
+
+async function getFreePort(): Promise<number> {
+  const listener = createServer();
+  listener.listen(0, "127.0.0.1");
+  await new Promise<void>((resolveListen, reject) => {
+    listener.once("listening", resolveListen);
+    listener.once("error", reject);
+  });
+  const address = listener.address();
+  listener.close();
+  if (!address || typeof address === "string") {
+    throw new Error("Unable to allocate a loopback test port");
+  }
+  return address.port;
+}
+
+function copyProject(projectRoot: string): void {
+  mkdirSync(projectRoot, { recursive: true });
+  for (const directory of copyDirectories) {
+    const source = join(sourceRoot, directory);
+    try {
+      cpSync(source, join(projectRoot, directory), {
+        recursive: true,
+        filter: (path) => {
+          const relativePath = relative(sourceRoot, path);
+          return (
+            relativePath !== "src/router.tsx" &&
+            relativePath !== "src/routes" &&
+            !relativePath.startsWith("src/routes/")
+          );
+        },
+      });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+  for (const file of rootConfigFiles) {
+    try {
+      cpSync(join(sourceRoot, file), join(projectRoot, file));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+  symlinkSync(join(sourceRoot, "node_modules"), join(projectRoot, "node_modules"));
+}
+
+function testEnvironment(
+  baseURL: string,
+  projectRoot: string,
+  adminToken: string,
+  contentCheckToken: string,
+): Record<string, string> {
+  const environment: Record<string, string> = {
+    TEST_BASE_URL: baseURL,
+    TEST_ADMIN_TOKEN: adminToken,
+    TEST_CONTENT_CHECK_TOKEN: contentCheckToken,
+    TEST_PROJECT_DIR: projectRoot,
+    ADMIN_USER_IDS: "[]",
+    CONTENT_API_TOKEN_SHA256: createHash("sha256").update(adminToken).digest("hex"),
+    CONTENT_CHECK_TOKEN_SHA256: createHash("sha256").update(contentCheckToken).digest("hex"),
+  };
+  for (const key of ["PATH", "HOME", "TMPDIR", "TEMP", "SHELL", "LANG", "TERM"]) {
+    const value = process.env[key];
+    if (value) environment[key] = value;
+  }
+  const browserExecutable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
+  if (browserExecutable) environment.PLAYWRIGHT_CHROMIUM_EXECUTABLE = browserExecutable;
+  const isCI = process.env.CI;
+  if (isCI) environment.CI = isCI;
+  return environment;
+}
+
+async function waitForServer(
+  server: ReturnType<typeof spawn>,
+  baseURL: string,
+  deadline: number,
+): Promise<void> {
+  if (server.exitCode !== null) {
+    throw new Error(`Vite exited before becoming ready (${server.exitCode})`);
+  }
+  const ready = await fetch(baseURL).then(
+    () => true,
+    () => false,
+  );
+  if (ready) return;
+  if (Date.now() >= deadline) throw new Error("Vite did not become ready within 30 seconds");
+  await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+  return waitForServer(server, baseURL, deadline);
+}
+
+function waitUntilServerIsReady(server: ReturnType<typeof spawn>, baseURL: string): Promise<void> {
+  return waitForServer(server, baseURL, Date.now() + 30_000);
+}
+
+function waitForServerExit(server: ReturnType<typeof spawn>, timeoutMs: number): Promise<boolean> {
+  if (server.exitCode !== null) return Promise.resolve(true);
+  return new Promise((resolveExit) => {
+    const timeout = setTimeout(() => {
+      server.off("close", onClose);
+      resolveExit(false);
+    }, timeoutMs);
+    const onClose = () => {
+      clearTimeout(timeout);
+      resolveExit(true);
+    };
+    server.once("close", onClose);
+  });
+}
+
+function signalServerTree(server: ReturnType<typeof spawn>, signal: NodeJS.Signals): void {
+  if (server.pid === undefined) return;
+  try {
+    if (process.platform === "win32") server.kill(signal);
+    else process.kill(-server.pid, signal);
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "ESRCH") {
+      return;
+    }
+    throw error;
+  }
+}
+
+async function stopServer(server: ReturnType<typeof spawn>): Promise<void> {
+  if (server.exitCode !== null) return;
+  signalServerTree(server, "SIGTERM");
+  if (await waitForServerExit(server, 5_000)) return;
+  signalServerTree(server, "SIGKILL");
+  if (!(await waitForServerExit(server, 2_000))) {
+    throw new Error("Test server process tree did not exit after SIGKILL");
+  }
+}
+
+async function runSuite(
+  projectRoot: string,
+  baseURL: string,
+  suite: string,
+  adminToken: string,
+  contentCheckToken: string,
+): Promise<number> {
+  const testPath = {
+    api: "tests/integration",
+    cli: "tests/cli",
+    e2e: "tests/e2e",
+  }[suite];
+  if (!testPath) throw new Error("Expected a test suite: api, cli, or e2e");
+  const executable =
+    suite === "e2e" ? join(projectRoot, "node_modules/.bin/playwright") : processExecPath();
+  const child = spawn(executable, ["test", testPath], {
+    cwd: projectRoot,
+    env: testEnvironment(baseURL, projectRoot, adminToken, contentCheckToken),
+    stdio: "inherit",
+  });
+  return new Promise((resolveExit, reject) => {
+    child.once("error", reject);
+    child.once("close", (code) => resolveExit(code ?? 1));
+  });
+}
+
+function processExecPath(): string {
+  return process.execPath;
+}
+
+async function main(): Promise<void> {
+  const suite = process.argv[2] ?? "";
+  const projectRoot = join(scratchRoot, randomUUID());
+  const port = await getFreePort();
+  const baseURL = `http://127.0.0.1:${port}`;
+  const adminToken = `${randomUUID()}${randomUUID()}`;
+  const contentCheckToken = `${randomUUID()}${randomUUID()}`;
+  mkdirSync(scratchRoot, { recursive: true });
+  copyProject(projectRoot);
+
+  const server = spawn(
+    join(projectRoot, "node_modules/.bin/vite"),
+    ["--host", "127.0.0.1", "--port", String(port), "--strictPort"],
+    {
+      cwd: projectRoot,
+      env: testEnvironment(baseURL, projectRoot, adminToken, contentCheckToken),
+      stdio: "inherit",
+      detached: process.platform !== "win32",
+    },
+  );
+  try {
+    await waitUntilServerIsReady(server, baseURL);
+    const exitCode = await runSuite(projectRoot, baseURL, suite, adminToken, contentCheckToken);
+    if (exitCode !== 0) throw new Error(`Test suite "${suite}" failed with exit code ${exitCode}`);
+  } catch (error) {
+    await stopServer(server);
+    throw error;
+  }
+  await stopServer(server);
+  rmSync(projectRoot, { recursive: true, force: true });
+}
+
+await main();

@@ -1,10 +1,16 @@
 {
   "extends": "./.void/tsconfig.json",
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "include": [
+    "src/**/*.ts", "src/**/*.tsx", "pages/**/*.ts", "pages/**/*.tsx",
+    "routes/**/*.ts", "middleware/**/*.ts", "db/**/*.ts",
+    "scripts/**/*.ts", "tests/**/*.ts", "env.ts", "lingui.config.ts",
+    "vite.config.mts", "void.config.ts", "playwright.config.ts"
+  ],
+  "exclude": ["src/router.tsx", "src/routes/**", ".void/test-projects/**"],
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "jsx": "react-jsx",
     "strict": true,
     "noUnusedLocals": true,
@@ -14,7 +20,7 @@
     "resolveJsonModule": true,
     "noEmit": true,
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
-    "types": ["vite/client", "void/env"],
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "types": ["vite/client", "void/env", "bun"]
   }
 }

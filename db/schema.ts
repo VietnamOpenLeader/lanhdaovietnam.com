@@ -7,3 +7,5 @@ export const posts = sqliteTable("posts", {
   body: text("body").notNull(),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
+
+export * from "./schema/content-posts";
