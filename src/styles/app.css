@@ -1,0 +1,16 @@
+@source "../../node_modules/@cloudflare/kumo/dist/**/*.{js,jsx,ts,tsx}";
+@import "@cloudflare/kumo/styles/tailwind";
+@import "tailwindcss";
+@import "@void/md/theme-content.css";
+
+body {
+  font-size: 14px;
+}
+
+.void-md {
+  --vmd-line-height: 1.75;
+}
+
+.void-md :where(code):not(pre code) {
+  font-size: 0.9em;
+}

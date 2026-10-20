@@ -1,4 +1,5 @@
 import { markdownIndex } from "./manifest.server";
+import { markdownSummary, markdownTranslations } from "./markdown";
 import type { ContentKind, ContentSource, Locale } from "./contracts";
 import {
   compareSummaries,
@@ -41,17 +42,7 @@ function buildMarkdownPartitions(): ReadonlyMap<string, ReadonlyArray<ContentSum
   }
 
   for (const entry of markdownIndex) {
-    const summary: ContentSummary = {
-      key: entry.key,
-      source: "markdown",
-      locale: entry.locale,
-      slug: entry.slug,
-      kind: entry.kind,
-      title: entry.title,
-      description: entry.description,
-      publishedAt: entry.publishedAt,
-      url: entry.url,
-    };
+    const summary = markdownSummary(entry);
     partitions.get(partitionKey(entry.locale, null))?.push(summary);
     partitions.get(partitionKey(entry.locale, entry.kind))?.push(summary);
   }
@@ -100,20 +91,6 @@ function d1Summary(record: ContentMetadataRecord): ContentSummary | null {
     : null;
 }
 
-function toMarkdownSummary(entry: (typeof markdownIndex)[number]): ContentSummary {
-  return {
-    key: entry.key,
-    source: "markdown",
-    locale: entry.locale,
-    slug: entry.slug,
-    kind: entry.kind,
-    title: entry.title,
-    description: entry.description,
-    publishedAt: entry.publishedAt,
-    url: entry.url,
-  };
-}
-
 export async function listCatalog(request: CatalogRequest): Promise<CatalogPage> {
   const filter = { locale: request.locale, kind: request.kind ?? null };
   const cursor = request.cursor === undefined ? undefined : parseCursor(request.cursor, filter);
@@ -151,13 +128,11 @@ export async function listTranslations(
   source: ContentSource,
 ): Promise<ReadonlyArray<ContentSummary>> {
   const summaries = source === "markdown"
-    ? markdownIndex
-      .filter((entry) => entry.translationKey === translationKey)
-      .map(toMarkdownSummary)
+    ? markdownTranslations(markdownIndex, translationKey)
     : (await runContentProgram(listPublishedTranslations(translationKey)))
       .flatMap((record) => {
         const summary = d1Summary(record);
         return summary ? [summary] : [];
       });
-  return summaries.sort(compareSummaries);
+  return [...summaries].sort(compareSummaries);
 }

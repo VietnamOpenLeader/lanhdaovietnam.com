@@ -1,4 +1,17 @@
 {
+  "content.filter.article": {
+    "message": "Bài viết",
+    "placeholders": {},
+    "comments": [
+      "Bộ lọc nội dung bài viết."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "文章"
+  },
   "content.next": {
     "message": "Bài viết tiếp theo",
     "placeholders": {},
@@ -12,18 +25,31 @@
     ],
     "translation": "下一篇文章"
   },
-  "content.empty": {
-    "message": "Chưa có bài viết.",
+  "content.heading": {
+    "message": "Bài viết và tin tức",
     "placeholders": {},
     "comments": [
-      "Thông báo thư viện đang trống cho ngôn ngữ hiện tại."
+      "Tiêu đề danh mục nội dung đa ngôn ngữ."
     ],
     "origin": [
       [
         "src/i18n/messages.ts"
       ]
     ],
-    "translation": "暂无文章。"
+    "translation": "文章和新闻"
+  },
+  "auth.signedIn": {
+    "message": "Bạn đã đăng nhập.",
+    "placeholders": {},
+    "comments": [
+      "Thông báo trang tài khoản khi người dùng đã đăng nhập."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "您已登录。"
   },
   "language.unavailable": {
     "message": "Chưa có bản dịch cho ngôn ngữ này.",
@@ -38,6 +64,45 @@
     ],
     "translation": "此语言暂时没有这篇文章的译文。"
   },
+  "content.empty": {
+    "message": "Chưa có nội dung.",
+    "placeholders": {},
+    "comments": [
+      "Thông báo thư viện đang trống cho ngôn ngữ hiện tại."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "暂无内容。"
+  },
+  "auth.loginModeSwitch": {
+    "message": "Chưa có tài khoản? Tạo tài khoản",
+    "placeholders": {},
+    "comments": [
+      "Liên kết chuyển từ đăng nhập sang đăng ký."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "还没有账户？创建账户"
+  },
+  "auth.signupModeSwitch": {
+    "message": "Đã có tài khoản? Đăng nhập",
+    "placeholders": {},
+    "comments": [
+      "Liên kết chuyển từ đăng ký sang đăng nhập."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "已有账户？登录"
+  },
   "auth.pending": {
     "message": "Đang đăng nhập…",
     "placeholders": {},
@@ -51,6 +116,19 @@
     ],
     "translation": "正在登录…"
   },
+  "auth.signOutPending": {
+    "message": "Đang đăng xuất…",
+    "placeholders": {},
+    "comments": [
+      "Nhãn trạng thái khi kết thúc phiên."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "正在退出…"
+  },
   "auth.signIn": {
     "message": "Đăng nhập",
     "placeholders": {},
@@ -63,6 +141,32 @@
       ]
     ],
     "translation": "登录"
+  },
+  "auth.socialUnavailable": {
+    "message": "Đăng nhập bằng {provider} chưa được cấu hình.",
+    "placeholders": {},
+    "comments": [
+      "Lý do nút nhà cung cấp mạng xã hội bị vô hiệu hóa."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "暂未配置 {provider} 登录。"
+  },
+  "auth.loginTitle": {
+    "message": "Đăng nhập vào tài khoản của bạn",
+    "placeholders": {},
+    "comments": [
+      "Tiêu đề trang xác thực."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "登录您的账户"
   },
   "auth.signOut": {
     "message": "Đăng xuất",
@@ -90,6 +194,19 @@
     ],
     "translation": "回望根源，塑造未来。"
   },
+  "content.readMore": {
+    "message": "Đọc tiếp",
+    "placeholders": {},
+    "comments": [
+      "Liên kết mở bài viết đầy đủ."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "阅读更多"
+  },
   "auth.email": {
     "message": "Email",
     "placeholders": {},
@@ -102,6 +219,32 @@
       ]
     ],
     "translation": "电子邮箱"
+  },
+  "language.en": {
+    "message": "English",
+    "placeholders": {},
+    "comments": [
+      "Tên ngôn ngữ tiếng Anh."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "English"
+  },
+  "auth.socialHeading": {
+    "message": "Hoặc tiếp tục với",
+    "placeholders": {},
+    "comments": [
+      "Tiêu đề nhóm nút đăng nhập mạng xã hội."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "或使用以下方式继续"
   },
   "auth.error": {
     "message": "Không thể xử lý yêu cầu. Vui lòng thử lại.",
@@ -142,6 +285,32 @@
     ],
     "translation": "密码"
   },
+  "language.select": {
+    "message": "Ngôn ngữ",
+    "placeholders": {},
+    "comments": [
+      "Nhãn vùng chọn ngôn ngữ."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "语言"
+  },
+  "content.filter.event": {
+    "message": "Sự kiện",
+    "placeholders": {},
+    "comments": [
+      "Bộ lọc nội dung sự kiện."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "活动"
+  },
   "auth.signUp": {
     "message": "Tạo tài khoản",
     "placeholders": {},
@@ -154,6 +323,32 @@
       ]
     ],
     "translation": "创建账户"
+  },
+  "auth.signupTitle": {
+    "message": "Tạo tài khoản",
+    "placeholders": {},
+    "comments": [
+      "Tiêu đề khi người dùng chọn đăng ký."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "创建账户"
+  },
+  "content.filter.all": {
+    "message": "Tất cả",
+    "placeholders": {},
+    "comments": [
+      "Bộ lọc hiển thị mọi loại nội dung."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "全部"
   },
   "auth.name": {
     "message": "Tên hiển thị",
@@ -181,6 +376,32 @@
     ],
     "translation": "内容库"
   },
+  "language.vi": {
+    "message": "Tiếng Việt",
+    "placeholders": {},
+    "comments": [
+      "Tên ngôn ngữ tiếng Việt."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "越南语"
+  },
+  "content.filter.news": {
+    "message": "Tin tức",
+    "placeholders": {},
+    "comments": [
+      "Bộ lọc nội dung tin tức."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "新闻"
+  },
   "nav.home": {
     "message": "Trang chủ",
     "placeholders": {},
@@ -193,5 +414,18 @@
       ]
     ],
     "translation": "首页"
+  },
+  "language.zhCN": {
+    "message": "简体中文",
+    "placeholders": {},
+    "comments": [
+      "Tên tiếng Trung giản thể."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "简体中文"
   }
 }

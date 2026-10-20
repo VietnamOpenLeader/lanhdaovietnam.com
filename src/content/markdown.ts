@@ -8,6 +8,10 @@ import {
   type ContentMetadata,
   type Locale,
 } from "./contracts";
+import {
+  compareSummaries,
+  type ContentSummary,
+} from "./pagination";
 
 export interface PublishedMarkdownEntry extends ContentMetadata {
   readonly key: string;
@@ -116,4 +120,28 @@ export function buildMarkdownIndex(
     };
   });
   return entries.sort((left, right) => alphabetical(left.url, right.url));
+}
+
+export function markdownSummary(entry: PublishedMarkdownEntry): ContentSummary {
+  return {
+    key: entry.key,
+    source: "markdown",
+    locale: entry.locale,
+    slug: entry.slug,
+    kind: entry.kind,
+    title: entry.title,
+    description: entry.description,
+    publishedAt: entry.publishedAt,
+    url: entry.url,
+  };
+}
+
+export function markdownTranslations(
+  entries: ReadonlyArray<PublishedMarkdownEntry>,
+  translationKey: string,
+): ReadonlyArray<ContentSummary> {
+  return entries
+    .filter((entry) => entry.translationKey === translationKey)
+    .map(markdownSummary)
+    .sort(compareSummaries);
 }

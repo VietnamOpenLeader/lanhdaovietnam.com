@@ -576,18 +576,18 @@ test("delete không có --yes không được gửi request", async () => {
 - Create: `tests/integration/pages.test.ts`, `tests/e2e/auth.spec.ts`, `tests/e2e/content.spec.ts`.
 
 **Interfaces**
-- Middleware shared data: `{locale:Locale|null, path:string, messages:Messages|null, availableProviders:("github"|"twitter"|"google")[]}`; `messages` chỉ là compiled catalog locale hiện tại. Không embed session record/token vào mọi trang.
+- Middleware shared data: `{locale:Locale|null, path:string, messages:Messages|null, availableProviders:("github"|"twitter"|"google")[], translationLinks?:ContentSummary[]}`; `messages` chỉ là compiled catalog locale hiện tại. Không embed session record/token vào mọi trang.
 - Page props dùng `InferProps<typeof loader>`, không duplicate handwritten return type.
 - `LoginIsland({locale, messages, availableProviders})` có Lingui provider riêng; dùng `auth` từ `void/client`.
-- `LoginMachine`: XState v6 alpha `setupEffect`, Effect Schema events/context, login actor có Effect runtime và request-local auth service; observable UI state là typed idle/submitting/authenticated/failed.
+- `LoginMachine`: XState v6 alpha `setupEffect`, Effect Schema events/context, login actor có Effect runtime và request-local auth service; observable UI state là typed idle/submitting/authenticated/failed/signingOut/signedOut.
 - Login island dùng `@xstate/react` `useSelector` để đọc `EffectActor`; factory/runtime thuộc island instance và được dispose khi unmount. Không dùng `useMachine`/`useActor` để khởi chạy Effect-backed logic. Không lưu password vào actor snapshot/persistence/log.
-- `LoginAuth` là Effect `Context.Service`: `signIn(input): Effect.Effect<void, LoginFailure>`. Adapter client gọi `auth.signIn.email`, map mọi lỗi thành thông báo chung, bỏ response/session data bằng `Effect.asVoid`; machine chỉ quan sát success/failure.
+- `LoginAuth` là Effect `Context.Service`: `authenticate(input)` và `signOut()` trả `Effect.Effect<void, LoginFailure>`. Adapter client gọi `auth.signIn.email`, `auth.signUp.email`, `auth.signIn.social`, và `auth.signOut`; map mọi lỗi thành thông báo chung, bỏ response/session data bằng `Effect.asVoid`; machine chỉ quan sát success/failure.
 - `LoginActorRuntime` tạo trong `useEffect` ở browser. Không khởi tạo runtime/actor trong SSR render; cleanup dispose runtime và ngắt Effect đang chạy khi island rời trang.
 - Markdown layout dùng shared locale trong SSR; interactive islands luôn nhận locale tường minh.
 
-- [ ] **9.1 — RED request tests:** ba home URLs trả localized HTML, `/cn/` 404, missing D1 translation 404, `/` 302 đúng location, unpublished slug 404, unknown slug 404. Test SSR không phụ thuộc JavaScript. Unit tests login machine assert `SUBMIT` từ idle gọi service đúng một lần; success → authenticated; failure → failed không lộ detail exception; unmount/dispose interrupt actor, không chạy sign-in sau khi bị dispose.
-- [ ] **9.2 — Unit test actor với services test-only:** `Effect.scoped(createEffectActor(loginMachine))`, inject `LoginAuth` mock bằng `Effect.provideService`; send events và chờ state bằng `waitFor`. Không mock `createEffectActor`/machine internals. Thử leak bằng snapshot sau success: password sent in `SUBMIT` event không tồn tại trong context/persisted snapshot, output chỉ `void`; TestClock dùng cho deadline nếu flow đặt timeout, không `sleep` thời gian thật.
-- [ ] **9.3 — Styling entry ở `src/styles/app.css`:**
+- [x] **9.1 — RED request tests:** ba home URLs trả localized HTML, `/cn/` 404, missing D1 translation 404, `/` 302 đúng location, unpublished slug 404, unknown slug 404. Test SSR không phụ thuộc JavaScript. Unit tests login machine assert `SUBMIT` từ idle gọi service đúng một lần; success → authenticated; failure → failed không lộ detail exception; unmount/dispose interrupt actor, không chạy sign-in sau khi bị dispose.
+- [x] **9.2 — Unit test actor với services test-only:** `Effect.scoped(createEffectActor(loginMachine))`, inject `LoginAuth` mock bằng `Effect.provideService`; send events và chờ state bằng `waitFor`. Không mock `createEffectActor`/machine internals. Thử leak bằng snapshot sau success: password sent in `SUBMIT` event không tồn tại trong context/persisted snapshot, output chỉ `void`; TestClock dùng cho deadline nếu flow đặt timeout, không `sleep` thời gian thật.
+- [x] **9.3 — Styling entry ở `src/styles/app.css`:**
 
 ```css
 @import "@cloudflare/kumo/styles/tailwind";
@@ -602,7 +602,7 @@ body { font-size: 14px; }
 
 Import CSS từ root layout để cả Markdown lẫn TSX nhận stylesheet. Override Markdown headings/body bằng semantic Kumo tokens khi theme mặc định không khớp; không thêm một reset thứ hai.
 
-- [ ] **9.4 — Island boundary:**
+- [x] **9.4 — Island boundary:**
 
 ```tsx
 import LoginIsland from "../../src/components/LoginIsland"
@@ -620,9 +620,9 @@ export default function LoginPage(props: Props) {
 
 Dùng import path thực tế từ `pages/[locale]/login.island.tsx`; static layout chỉ `<a>`, không Void `Link`/router hooks. Kumo dùng granular imports cho Button/Input/Field components có sẵn ở phiên bản đã pin.
 
-- [ ] **9.5 — Auth UI:** email sign-up/sign-in và sign-out, pending/error state từ actor, label/autocomplete phù hợp, ba social buttons gọi `auth.signIn.social({provider,callbackURL})`; callbackURL cùng origin, locale hợp lệ. Thiếu OAuth credentials thì disable có giải thích đã dịch, không fake response. Password chỉ component state + ephemeral `SUBMIT` event tới Effect logic; actor context/output/snapshot/logger không giữ password hoặc session token. Không xây forgot-password flow khi chưa cấu hình email delivery.
-- [ ] **9.6 — Public UI:** danh mục với kind filter/pagination bằng links; D1 detail render sanitized HTML Task 6; Markdown giữ HTML/static layout. Language links tới published counterpart nếu có, nếu không tới home locale với nhãn “chưa có bản dịch”. Không tự dùng cùng slug cho ngôn ngữ khác.
-- [ ] **9.7 — GREEN:** `bun test tests/unit/login-machine.test.ts`, `bun scripts/test-local.ts api`, `bun run typecheck`, `bun run build`. Tại browser task cuối, kiểm chứng form Kumo thực sự hydrate, actor được tạo sau mount và disposed sau unmount, không chỉ SSR screenshot. Typography 14px, headings semibold/sentence case, không tracking tùy ý/font-bold, không hover color transition; không thêm animation tùy chỉnh.
+- [x] **9.5 — Auth UI:** email sign-up/sign-in và sign-out, pending/error state từ actor, label/autocomplete phù hợp, ba social buttons gọi `auth.signIn.social({provider,callbackURL})`; callbackURL cùng origin, locale hợp lệ. Thiếu OAuth credentials thì disable có giải thích đã dịch, không fake response. Password chỉ component state + ephemeral `SUBMIT` event tới Effect logic; actor context/output/snapshot/logger không giữ password hoặc session token. Không xây forgot-password flow khi chưa cấu hình email delivery.
+- [x] **9.6 — Public UI:** danh mục với kind filter/pagination bằng links; D1 detail render sanitized HTML Task 6; Markdown giữ HTML/static layout. Language links tới published counterpart nếu có, nếu không tới home locale với nhãn “chưa có bản dịch”. Không tự dùng cùng slug cho ngôn ngữ khác.
+- [x] **9.7 — GREEN:** `bun test tests/unit/login-machine.test.ts`, `bun scripts/test-local.ts api`, `bun run typecheck`, `bun run build`. Tại browser task cuối, kiểm chứng form Kumo thực sự hydrate, actor được tạo sau mount và disposed sau unmount, không chỉ SSR screenshot. Typography 14px, headings semibold/sentence case, không tracking tùy ý/font-bold, không hover color transition; không thêm animation tùy chỉnh.
 - [ ] **9.8 — Commit:** `GIT_EDITOR=true git commit -m "feat: build localized content pages with Kumo islands"`.
 
 ## Task 10 — Head, sitemap và kiểm tra xung đột trước deploy

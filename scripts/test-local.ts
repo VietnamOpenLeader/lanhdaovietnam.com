@@ -12,7 +12,7 @@ const copyDirectories = [
 ];
 const rootConfigFiles = [
   ".gitignore", "package.json", "bun.lock", "tsconfig.json",
-  "vite.config.mts", "void.config.ts", "env.ts", "auth.ts",
+  "vite.config.mts", "void.config.ts", "env.ts", "auth.ts", "playwright.config.ts",
 ];
 
 async function getFreePort(): Promise<number> {
@@ -73,6 +73,10 @@ function testEnvironment(
     const value = process.env[key];
     if (value) environment[key] = value;
   }
+  const browserExecutable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
+  if (browserExecutable) environment.PLAYWRIGHT_CHROMIUM_EXECUTABLE = browserExecutable;
+  const isCI = process.env.CI;
+  if (isCI) environment.CI = isCI;
   return environment;
 }
 
@@ -114,8 +118,11 @@ async function runSuite(
     e2e: "tests/e2e",
   }[suite];
   if (!testPath) throw new Error("Expected a test suite: api, cli, or e2e");
+  const executable = suite === "e2e"
+    ? join(projectRoot, "node_modules/.bin/playwright")
+    : processExecPath();
   const process = spawn(
-    processExecPath(),
+    executable,
     ["test", testPath],
     {
       cwd: projectRoot,
