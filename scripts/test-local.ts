@@ -61,13 +61,16 @@ function testEnvironment(
   baseURL: string,
   projectRoot: string,
   adminToken: string,
+  contentCheckToken: string,
 ): Record<string, string> {
   const environment: Record<string, string> = {
     TEST_BASE_URL: baseURL,
     TEST_ADMIN_TOKEN: adminToken,
+    TEST_CONTENT_CHECK_TOKEN: contentCheckToken,
     TEST_PROJECT_DIR: projectRoot,
     ADMIN_USER_IDS: "[]",
     CONTENT_API_TOKEN_SHA256: createHash("sha256").update(adminToken).digest("hex"),
+    CONTENT_CHECK_TOKEN_SHA256: createHash("sha256").update(contentCheckToken).digest("hex"),
   };
   for (const key of ["PATH", "HOME", "TMPDIR", "TEMP", "SHELL", "LANG", "TERM"]) {
     const value = process.env[key];
@@ -111,6 +114,7 @@ async function runSuite(
   baseURL: string,
   suite: string,
   adminToken: string,
+  contentCheckToken: string,
 ): Promise<number> {
   const testPath = {
     api: "tests/integration",
@@ -126,7 +130,7 @@ async function runSuite(
     ["test", testPath],
     {
       cwd: projectRoot,
-      env: testEnvironment(baseURL, projectRoot, adminToken),
+      env: testEnvironment(baseURL, projectRoot, adminToken, contentCheckToken),
       stdio: "inherit",
     },
   );
@@ -146,6 +150,7 @@ async function main(): Promise<void> {
   const port = await getFreePort();
   const baseURL = `http://127.0.0.1:${port}`;
   const adminToken = `${randomUUID()}${randomUUID()}`;
+  const contentCheckToken = `${randomUUID()}${randomUUID()}`;
   mkdirSync(scratchRoot, { recursive: true });
   copyProject(projectRoot);
 
@@ -154,13 +159,13 @@ async function main(): Promise<void> {
     ["--host", "127.0.0.1", "--port", String(port), "--strictPort"],
     {
       cwd: projectRoot,
-      env: testEnvironment(baseURL, projectRoot, adminToken),
+      env: testEnvironment(baseURL, projectRoot, adminToken, contentCheckToken),
       stdio: "inherit",
     },
   );
   try {
     await waitUntilServerIsReady(server, baseURL);
-    const exitCode = await runSuite(projectRoot, baseURL, suite, adminToken);
+    const exitCode = await runSuite(projectRoot, baseURL, suite, adminToken, contentCheckToken);
     if (exitCode !== 0) throw new Error(`Test suite "${suite}" failed with exit code ${exitCode}`);
     await stopServer(server);
     rmSync(projectRoot, { recursive: true, force: true });

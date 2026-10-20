@@ -15,8 +15,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
       - run: bun install --frozen-lockfile
+      - name: Run local quality gates
+        run: bun run check
+      - name: Check candidate content against deployed D1
+        env:
+          CONTENT_API_URL: ${{ vars.CONTENT_API_URL }}
+          CONTENT_CHECK_TOKEN: ${{ secrets.CONTENT_CHECK_TOKEN }}
+        run: bun run content check --api
       - name: Deploy
         env:
           # Add this scoped token at Settings → Secrets and variables → Actions.

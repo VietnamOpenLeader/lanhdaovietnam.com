@@ -370,7 +370,7 @@ Chạy `bun test tests/unit/admin-policy.test.ts`; xác nhận 401/403 semantics
 - [x] **4.4 — Origin:** session mutations bắt buộc Origin đúng request origin; không tin `X-Forwarded-*`. Bearer là cơ chế riêng; không mở CORS wildcard/credential sharing. Void auth giữ protection/rate limit mặc định — [Void authentication, retrieved 2026-10-19](https://void.cloud/guide/auth).
 - [x] **4.5 — Runner auth fixtures:** test runner sandbox đặt admin allowlist rỗng, không truyền OAuth/API production credentials và không cần fake OAuth. Integration test đăng ký email, nhận cookie, xác nhận `/api/profile` 401 trước đăng nhập rồi trả ID/name và `isAdmin:false` sau đăng nhập; không dùng production user hoặc email delivery.
 - [x] **4.6 — GREEN:** `bun test tests/unit/admin-policy.test.ts tests/unit/social-providers.test.ts` PASS (4 tests, 11 assertions); `bun run test:api` PASS (email signup/profile + smoke, 4 tests / 16 assertions, without OAuth secrets); `bun run typecheck` PASS. OAuth live chưa kiểm chứng.
-- [ ] **4.7 — Commit:** `GIT_EDITOR=true git commit -m "feat: restrict content administration to admins"`.
+- [x] **4.7 — Commit:** `GIT_EDITOR=true git commit -m "feat: restrict content administration to admins"`.
 
 ## Task 5 — D1 schema additive, constraints và query plans
 
@@ -416,7 +416,7 @@ Tạo `tests/migration-fixture.ts`: `applyProjectMigrations(db, range)` đọc j
 - [x] **5.3 — Generate:** `bunx void db generate`; review SQL, snapshots/journal diff, auth tables được Void sinh sau Task 4. Không tự khai lại auth tables ở app schema.
 - [x] **5.4 — Query plans:** test `EXPLAIN QUERY PLAN` cho public list có/không kind, point lookup và translations. Assert sử dụng index phù hợp, không `SCAN content_posts` toàn bảng và không temp sort cho hai public-list queries. Với cast/function trên ngày làm mất index, đổi query thay vì thêm cache che chi phí.
 - [x] **5.5 — GREEN:** `bun test tests/unit/migrations.test.ts`, `bunx void db migrate` local, `bun scripts/test-local.ts api`. SQLite tests bổ sung duplicate/invalid locale/invalid event/version constraints. D1-runtime tests ở task sau vẫn bắt buộc vì SQLite không chứng minh toàn bộ D1 behavior.
-- [ ] **5.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: add localized content tables without altering legacy posts"`.
+- [x] **5.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: add localized content tables without altering legacy posts"`.
 
 ## Task 6 — Repository, safe rendering và CRUD API
 
@@ -564,7 +564,7 @@ test("delete không có --yes không được gửi request", async () => {
 - [x] **8.3 — Import:** đọc frontmatter/body qua cùng parser Task 2, reject file trong cây `pages/*/library/` của repo, gọi POST, không delete/write file; duplicate translationKey+locale trả 409. Không compile script/component từ file import; body lưu dạng plain Markdown renderer an toàn.
 - [x] **8.4 — Transport:** timeout 15 giây, không tự retry mutation để tránh duplicate; parse non-JSON errors thành thông báo gọn, không in request headers. `delete --yes` là non-interactive rõ ràng, không prompt PTY làm treo.
 - [x] **8.5 — GREEN:** `bun test tests/unit/content-cli.test.ts`, `bun scripts/test-local.ts cli`. Suite dùng `Bun.spawn` gọi CLI thật, API/D1 thật: create→get→update→list→delete, import hai lần, wrong token, stale version, malformed input, redirect sang server capture khác; server thứ hai không được nhận Authorization.
-- [ ] **8.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: add authenticated content CLI and Markdown import"`.
+- [x] **8.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: add authenticated content CLI and Markdown import"`.
 
 ## Task 9 — Trang đa ngôn ngữ và Kumo islands
 
@@ -623,7 +623,7 @@ Dùng import path thực tế từ `pages/[locale]/login.island.tsx`; static lay
 - [x] **9.5 — Auth UI:** email sign-up/sign-in và sign-out, pending/error state từ actor, label/autocomplete phù hợp, ba social buttons gọi `auth.signIn.social({provider,callbackURL})`; callbackURL cùng origin, locale hợp lệ. Thiếu OAuth credentials thì disable có giải thích đã dịch, không fake response. Password chỉ component state + ephemeral `SUBMIT` event tới Effect logic; actor context/output/snapshot/logger không giữ password hoặc session token. Không xây forgot-password flow khi chưa cấu hình email delivery.
 - [x] **9.6 — Public UI:** danh mục với kind filter/pagination bằng links; D1 detail render sanitized HTML Task 6; Markdown giữ HTML/static layout. Language links tới published counterpart nếu có, nếu không tới home locale với nhãn “chưa có bản dịch”. Không tự dùng cùng slug cho ngôn ngữ khác.
 - [x] **9.7 — GREEN:** `bun test tests/unit/login-machine.test.ts`, `bun scripts/test-local.ts api`, `bun run typecheck`, `bun run build`. Tại browser task cuối, kiểm chứng form Kumo thực sự hydrate, actor được tạo sau mount và disposed sau unmount, không chỉ SSR screenshot. Typography 14px, headings semibold/sentence case, không tracking tùy ý/font-bold, không hover color transition; không thêm animation tùy chỉnh.
-- [ ] **9.8 — Commit:** `GIT_EDITOR=true git commit -m "feat: build localized content pages with Kumo islands"`.
+- [x] **9.8 — Commit:** `GIT_EDITOR=true git commit -m "feat: build localized content pages with Kumo islands"`.
 
 ## Task 10 — Head, sitemap và kiểm tra xung đột trước deploy
 
@@ -642,7 +642,7 @@ Dùng import path thực tế từ `pages/[locale]/login.island.tsx`; static lay
 - Cả hai content-check endpoints cũng chấp nhận token read-only riêng: env `CONTENT_CHECK_TOKEN_SHA256`, dùng cùng digest verifier. Token này không được CRUD, không được xem body bản nháp; response chỉ trả conflict keys/counts.
 - `content check --api` gửi manifest candidate từ local tree, không chỉ hỏi manifest cũ trên server. stdout JSON và nonzero khi conflict.
 
-- [ ] **10.1 — RED head unit test:**
+- [x] **10.1 — RED head unit test:**
 
 ```ts
 import { expect, test } from "bun:test";
@@ -667,13 +667,13 @@ test("canonical và alternate dùng đúng locale/nguồn", () => {
 });
 ```
 
-- [ ] **10.2 — Global config:** title template `%s | Lãnh đạo Việt Nam`, lang fallback `vi`, charset/viewport/site name/favicon. Không global canonical, global og:url hay title template lặp brand. Dùng `defineHead` trong server companion cho D1/home/auth.
-- [ ] **10.3 — Markdown:** middleware lookup manifest theo pathname, set headDefaults với lang/OG/Twitter/canonical/alternates/JSON-LD. Frontmatter title/description page thắng middleware; chỉ một canonical. Prerender Markdown chỉ được bật khi đã kiểm chứng head đi qua đúng middleware; nếu build prerender không bảo toàn head thì thêm companion server theo supported API, không chấp nhận SEO bị mất.
-- [ ] **10.4 — Sitemap:** iterator keyset D1 published + Markdown manifest, escape XML. Giới hạn nội bộ bảo thủ 10.000 URL/part và 10 MiB/part; `/sitemap.xml` là index trỏ `/sitemaps/{page}`. Không build một array body của toàn bộ D1; không đưa draft/login/unsupported locales vào sitemap. Robots chỉ trỏ sitemap, không chứa admin token hay dùng robots để bảo vệ API. Chưa có social image thì bỏ `og:image`, không tạo SVG rồi giả định mọi social crawler đều hỗ trợ.
-- [ ] **10.5 — JSON-LD:** `Article`/`NewsArticle`/`Event` đúng kind; không bịa author, address hoặc event attendance metadata. Serialize escape `<`, U+2028/U+2029 để không thoát script tag.
-- [ ] **10.6 — Conflict check:** schema request và SQL lookup bounded bằng translation keys từng batch; phát hiện một nhóm bị xuất bản ở cả Markdown/D1. API create/update cũng kiểm tra manifest đang deploy. Không tự “chữa” bằng override/delete. Operator không chạy concurrent content writes khi deploy candidate manifest; ghi rõ preflight check không phải distributed lock.
-- [ ] **10.7 — GREEN:** `bun test tests/unit/head.test.ts`, `bun scripts/test-local.ts api`, `bun run build`. Request HTML thực cho 3 Markdown + 3 D1 locales; parse head để assert một canonical, lang đúng, alternates reciprocal chỉ published, title/description/OG/Twitter, XML hợp lệ, login noindex.
-- [ ] **10.8 — Commit:** `GIT_EDITOR=true git commit -m "feat: add localized SEO and candidate content preflight checks"`.
+- [x] **10.2 — Global config:** title template `%s | Lãnh đạo Việt Nam`, lang fallback `vi`, charset/viewport/site name/favicon. Không global canonical, global og:url hay title template lặp brand. Dùng `defineHead` trong server companion cho D1/home/auth.
+- [x] **10.3 — Markdown:** middleware lookup manifest theo pathname, set headDefaults với lang/OG/Twitter/canonical/alternates/JSON-LD. Frontmatter title/description page thắng middleware; chỉ một canonical. Prerender Markdown chỉ được bật khi đã kiểm chứng head đi qua đúng middleware; nếu build prerender không bảo toàn head thì thêm companion server theo supported API, không chấp nhận SEO bị mất.
+- [x] **10.4 — Sitemap:** iterator keyset D1 published + Markdown manifest, escape XML. Giới hạn nội bộ bảo thủ 10.000 URL/part và 10 MiB/part; `/sitemap.xml` là index trỏ `/sitemaps/{page}`. Không build một array body của toàn bộ D1; không đưa draft/login/unsupported locales vào sitemap. Robots chỉ trỏ sitemap, không chứa admin token hay dùng robots để bảo vệ API. Chưa có social image thì bỏ `og:image`, không tạo SVG rồi giả định mọi social crawler đều hỗ trợ.
+- [x] **10.5 — JSON-LD:** `Article`/`NewsArticle`/`Event` đúng kind; không bịa author, address hoặc event attendance metadata. Serialize escape `<`, U+2028/U+2029 để không thoát script tag.
+- [x] **10.6 — Conflict check:** schema request và SQL lookup bounded bằng translation keys từng batch; phát hiện một nhóm bị xuất bản ở cả Markdown/D1. API create/update cũng kiểm tra manifest đang deploy. Không tự “chữa” bằng override/delete. Operator không chạy concurrent content writes khi deploy candidate manifest; ghi rõ preflight check không phải distributed lock.
+- [x] **10.7 — GREEN:** `bun test tests/unit/head.test.ts`, `bun scripts/test-local.ts api`, `bun run build`. Request HTML thực cho 3 Markdown + 3 D1 locales; parse head để assert một canonical, lang đúng, alternates reciprocal chỉ published, title/description/OG/Twitter, XML hợp lệ, login noindex.
+- [x] **10.8 — Commit:** `GIT_EDITOR=true git commit -m "feat: add localized SEO and candidate content preflight checks"`.
 
 ## Task 11 — Browser regression, CI và runbook
 
@@ -705,7 +705,7 @@ test("canonical và alternate dùng đúng locale/nguồn", () => {
 
 `test:e2e` riêng vì cần browser installation. CI phải chạy cả `check` lẫn `test:e2e`, không coi `check` một mình là toàn bộ gate.
 
-- [ ] **11.1 — RED browser test chuyển locale:**
+- [x] **11.1 — RED browser test chuyển locale:**
 
 ```ts
 import { expect, test } from "@playwright/test";
@@ -720,12 +720,12 @@ test("người đọc đổi ngôn ngữ qua bản dịch có thật", async ({ 
 });
 ```
 
-- [ ] **11.2 — Browser matrix:** Chromium desktop và mobile viewport; signin/signup/signout email thật, member không được mutate, admin session mutate, login pending/error, mobile nav nếu có, language switch, locale/date formatting, missing translation, draft direct URL, next/back pages, Kumo focus/keyboard, reduced-motion. Capture screenshot lúc layout ổn định và console errors/hydration mismatch/network failures.
-- [ ] **11.3 — Asset checks:** article không có island không tải app-wide hydration bundle; login chỉ tải island/catalog của locale hiện tại. Kiểm tra network/bundle manifest thay vì khẳng định “zero JS” tuyệt đối vì Markdown code-copy script có thể tồn tại.
-- [ ] **11.4 — CI:** Node 24 + Bun, `bun install --frozen-lockfile`, `bun run check`, `bunx playwright install --with-deps chromium`, `bun run test:e2e`, upload test artifacts khi lỗi. Không cung cấp production OAuth/API token cho PR test.
-- [ ] **11.5 — Deploy workflow:** thêm local gates trước bước deploy hiện có; candidate manifest preflight là bước riêng trước migration/deploy, dùng token read-only content-check được operator cấp. Deployment tự động sau bootstrap bắt buộc preflight; thiếu credential hoặc endpoint không truy cập được thì dừng, không skip im lặng. Lần đầu chưa có endpoint cần operator bootstrap theo runbook với phê duyệt riêng; không tự fallback từ preflight lỗi sang deploy. Không chạy workflow/deploy trong phiên triển khai này nếu chưa được phép.
-- [ ] **11.6 — Runbook:** fresh install→prepare→migrate local→dev; viết Markdown/frontmatter; tạo từng locale; tạo draft/publish/update/delete qua CLI; cấp admin ID qua profile, tạo token ngoài source và lưu digest server, rotate/revoke, callback URLs OAuth từng môi trường. Không ghi token thật hoặc mặc định dùng production API trong ví dụ.
-- [ ] **11.7 — Migration/rollback:** additive schema không drop legacy data; app rollback không tự restore DB hoặc xóa content mới. Nếu deployment migration hỏng, dừng deploy, review forward-fix; chỉ restore remote khi người dùng cho phép và hiểu dữ liệu ghi sau mốc sẽ mất.
+- [ ] **11.2 — Browser matrix:** Chromium desktop và mobile viewport; signin/signup/signout email thật, member không được mutate, admin session mutate, login pending/error, mobile nav nếu có, language switch, locale/date formatting, missing translation, draft direct URL, next/back pages, Kumo focus/keyboard, reduced-motion. Capture screenshot lúc layout ổn định và console errors/hydration mismatch/network failures. Desktop/mobile E2E hiện cover email signup/signout, locale switch, missing routes, keyboard/reduced-motion và page errors; browser admin-session mutation cùng artifact screenshot ổn định chưa được tự động hóa.
+- [x] **11.3 — Asset checks:** article không có island không tải app-wide hydration bundle; login chỉ tải island/catalog của locale hiện tại. Kiểm tra network/bundle manifest thay vì khẳng định “zero JS” tuyệt đối vì Markdown code-copy script có thể tồn tại.
+- [x] **11.4 — CI:** Node 24 + Bun, `bun install --frozen-lockfile`, `bun run check`, `bunx playwright install --with-deps chromium`, `bun run test:e2e`, upload test artifacts khi lỗi. Không cung cấp production OAuth/API token cho PR test.
+- [x] **11.5 — Deploy workflow:** thêm local gates trước bước deploy hiện có; candidate manifest preflight là bước riêng trước migration/deploy, dùng token read-only content-check được operator cấp. Deployment tự động sau bootstrap bắt buộc preflight; thiếu credential hoặc endpoint không truy cập được thì dừng, không skip im lặng. Lần đầu chưa có endpoint cần operator bootstrap theo runbook với phê duyệt riêng; không tự fallback từ preflight lỗi sang deploy. Không chạy workflow/deploy trong phiên triển khai này nếu chưa được phép.
+- [x] **11.6 — Runbook:** fresh install→prepare→migrate local→dev; viết Markdown/frontmatter; tạo từng locale; tạo draft/publish/update/delete qua CLI; cấp admin ID qua profile, tạo token ngoài source và lưu digest server, rotate/revoke, callback URLs OAuth từng môi trường. Không ghi token thật hoặc mặc định dùng production API trong ví dụ.
+- [x] **11.7 — Migration/rollback:** additive schema không drop legacy data; app rollback không tự restore DB hoặc xóa content mới. Nếu deployment migration hỏng, dừng deploy, review forward-fix; chỉ restore remote khi người dùng cho phép và hiểu dữ liệu ghi sau mốc sẽ mất.
 - [ ] **11.8 — GREEN: final validation đúng command:**
 
 ```sh
@@ -737,6 +737,8 @@ git diff --check
 ```
 
 Mong đợi tất cả exit 0; báo số test thực tế, screenshots/artifacts và những check bị chặn. Social OAuth E2E chỉ đánh dấu PASS khi đã callback thật qua từng provider; thiếu credentials thì ghi NOT RUN, không đánh dấu xong bằng mock.
+
+Local verification used the installed system Chrome through `PLAYWRIGHT_CHROMIUM_EXECUTABLE`; `bunx playwright install --with-deps chromium` was not run locally. CI runs that exact browser installation step. Live social OAuth callbacks remain NOT RUN because provider credentials were not supplied.
 
 - [ ] **11.9 — Commit:** `GIT_EDITOR=true git commit -m "test: gate localized content workflows and document operations"`.
 

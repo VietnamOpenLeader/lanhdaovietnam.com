@@ -5,6 +5,7 @@
     "dev": "vite",
     "typecheck": "void prepare && bun run i18n:compile && tsc --noEmit",
     "test:api": "bun scripts/test-local.ts api",
+    "test:cli": "bun scripts/test-local.ts cli",
     "test:e2e": "bun scripts/test-local.ts e2e",
     "test:unit": "bun run i18n:compile && bun test tests/unit",
     "content": "bun scripts/content.ts",
@@ -12,7 +13,8 @@
     "i18n:extract": "lingui extract",
     "i18n:check": "bun scripts/check-catalogs.ts && lingui check sync",
     "i18n:compile": "lingui compile --typescript --strict",
-    "build": "bun run content:check && bun run i18n:check && bun run i18n:compile && vite build"
+    "build": "bun run content:check && bun run i18n:check && bun run i18n:compile && vite build",
+    "check": "bun run i18n:check && bun run i18n:compile && bun run typecheck && bun run test:unit && bun run test:api && bun run test:cli && bun run build"
   },
   "dependencies": {
     "@cloudflare/kumo": "2.14.0",
