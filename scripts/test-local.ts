@@ -12,7 +12,7 @@ const copyDirectories = [
 ];
 const rootConfigFiles = [
   ".gitignore", "package.json", "bun.lock", "tsconfig.json",
-  "vite.config.mts", "void.config.ts",
+  "vite.config.mts", "void.config.ts", "env.ts", "auth.ts",
 ];
 
 async function getFreePort(): Promise<number> {
@@ -61,6 +61,7 @@ function testEnvironment(baseURL: string, projectRoot: string): Record<string, s
   const environment: Record<string, string> = {
     TEST_BASE_URL: baseURL,
     TEST_PROJECT_DIR: projectRoot,
+    ADMIN_USER_IDS: "[]",
   };
   for (const key of ["PATH", "HOME", "TMPDIR", "TEMP", "SHELL", "LANG", "TERM"]) {
     const value = process.env[key];
@@ -69,17 +70,23 @@ function testEnvironment(baseURL: string, projectRoot: string): Record<string, s
   return environment;
 }
 
-async function waitForServer(server: ReturnType<typeof spawn>, baseURL: string): Promise<void> {
-  const deadline = Date.now() + 30_000;
-  while (Date.now() < deadline) {
-    if (server.exitCode !== null) {
-      throw new Error(`Vite exited before becoming ready (${server.exitCode})`);
-    }
-    const ready = await fetch(baseURL).then(() => true, () => false);
-    if (ready) return;
-    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+async function waitForServer(
+  server: ReturnType<typeof spawn>,
+  baseURL: string,
+  deadline: number,
+): Promise<void> {
+  if (server.exitCode !== null) {
+    throw new Error(`Vite exited before becoming ready (${server.exitCode})`);
   }
-  throw new Error("Vite did not become ready within 30 seconds");
+  const ready = await fetch(baseURL).then(() => true, () => false);
+  if (ready) return;
+  if (Date.now() >= deadline) throw new Error("Vite did not become ready within 30 seconds");
+  await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+  return waitForServer(server, baseURL, deadline);
+}
+
+function waitUntilServerIsReady(server: ReturnType<typeof spawn>, baseURL: string): Promise<void> {
+  return waitForServer(server, baseURL, Date.now() + 30_000);
 }
 
 async function stopServer(server: ReturnType<typeof spawn>): Promise<void> {
@@ -133,7 +140,7 @@ async function main(): Promise<void> {
     },
   );
   try {
-    await waitForServer(server, baseURL);
+    await waitUntilServerIsReady(server, baseURL);
     const exitCode = await runSuite(projectRoot, baseURL, suite);
     if (exitCode !== 0) throw new Error(`Test suite "${suite}" failed with exit code ${exitCode}`);
     await stopServer(server);

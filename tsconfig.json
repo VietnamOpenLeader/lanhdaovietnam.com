@@ -3,7 +3,8 @@
   "include": [
     "src/**/*.ts", "src/**/*.tsx", "pages/**/*.ts", "pages/**/*.tsx",
     "routes/**/*.ts", "middleware/**/*.ts", "db/**/*.ts",
-    "scripts/**/*.ts", "tests/**/*.ts", "vite.config.mts", "void.config.ts"
+    "scripts/**/*.ts", "tests/**/*.ts", "env.ts", "lingui.config.ts",
+    "vite.config.mts", "void.config.ts"
   ],
   "exclude": ["src/router.tsx", "src/routes/**", ".void/test-projects/**"],
   "compilerOptions": {

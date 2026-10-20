@@ -68,6 +68,7 @@ db/
 schemas/
   lingui-catalog.schema.json
 env.ts
+auth.ts                             # Enable social providers only with credentials
 void.config.ts
 vite.config.mts
 ```
@@ -140,7 +141,8 @@ Không có số đo lưu lượng hoặc SLO production do người dùng cung c
 
 ## Auth và authorization
 
-- Bật bốn provider trong Void config; giữ cơ chế session, cookie, origin protection và migration auth của Void.
+- Bật email/password làm provider mặc định của Void; `auth.ts` chỉ thêm `github`, `twitter`, `google` khi cả client ID và secret của provider đó đã được cấu hình. Thiếu OAuth secret sẽ không làm email auth, content pages hoặc Worker ngừng hoạt động; UI chỉ hiển thị provider đủ credentials.
+- Giữ cơ chế session, cookie, origin protection và migration auth của Void.
 - Quản trị viên web được xác định bằng allowlist **user ID bất biến** ở cấu hình server, không dựa vào email người dùng tự khai hoặc một cờ client gửi lên.
 - Allowlist rỗng nghĩa là không có quản trị viên. Endpoint profile chỉ cho người dùng xem ID của chính mình để operator cấp quyền bằng cấu hình server.
 - CLI dùng bearer token có quyền quản trị nội dung, tách biệt với session và OAuth secrets. Token được operator cung cấp qua biến môi trường; không truyền bằng argument, lưu vào repo hoặc in log.

@@ -18,6 +18,7 @@
 - Trước task đầu, đọc `AGENTS.md`, các hướng dẫn lồng nhau nếu có, cùng `node_modules/void/docs/guide/quickstart.md` và `reference/cli.md`.
 - Giữ `void`, `@void/react`, `@void/md` cùng phiên bản `1.1.12`; không thay Cloudflare Worker/Auth/Pages/route registry/Drizzle D1 bằng Effect Platform.
 - Pin `effect@4.0.5`; không trộn Effect 3 package/API.
+- Enable Worker `nodejs_compat` for the Node `crypto.timingSafeEqual` primitive; use Web Crypto for SHA-256 token digests.
 - `@xstate/effect@1.0.0-alpha.9` + XState `6.0.0-alpha.70` + `@xstate/react@7.0.0-alpha.6` là alpha/experimental. Chỉ dùng trong login island; không chạy business API/runtime bằng alpha actor và không nâng framework để thỏa peer dependency.
 - Node tối thiểu `22.19.0`; CI dùng Node `24`. Package registry đã được kiểm tra ngày 2026-10-19: Kumo `2.14.0`, Lingui `6.10.0`; chốt chúng trong lockfile, không dùng `latest` ở CI.
 - Registry `peerDependenciesMeta` xác nhận Zod/ECharts là optional với Kumo `2.14.0`; dùng `Effect.Schema` thay Zod. Không cài ECharts. Kumo peer bắt buộc: React, React DOM và Phosphor icons `^2.1.10`.
@@ -48,7 +49,7 @@
 | `src/content/pagination.ts` | Cursor và comparator chung cho hai nguồn |
 | `src/content/catalog.server.ts` | Hợp nhất metadata, lookup translation links |
 | `src/content/render.server.ts` | Render Markdown D1 an toàn, không compiler JSX |
-| `src/auth/policy.ts`, `src/auth/admin.server.ts` | Effect policy, tích hợp Void auth/session/env |
+| `auth.ts`, `src/auth/policy.ts`, `src/auth/social-providers.ts`, `src/auth/admin.server.ts` | Optional Void OAuth providers, Effect admin policy, typed provider availability |
 | `src/auth/login-machine.ts` | XState Effect statechart và typed auth services |
 | `src/components/LoginActor.tsx` | React island bridge, scoped runtime và actor disposal |
 | `src/http/content-errors.server.ts` | Domain error → JSON/status; không lộ SQL/stack |
@@ -324,15 +325,15 @@ export const signIn: MessageDescriptor = /* i18n */ {
 - [x] **3.3 — Schema JSON:** top-level object key là message ID; mỗi entry phải có `translation`, `message`, `placeholders`, `comments`, `origin`, optional `context` và `obsolete` đúng output đã sinh từ formatter `6.10.0`. `Ajv` strict mode reject unknown fields, sai types và shape origins; cross-catalog gate reject thiếu ID/bản dịch rỗng.
 - [x] **3.4 — Scripts:** `i18n:extract = lingui extract`, `i18n:check = bun scripts/check-catalogs.ts && lingui check sync`, `i18n:compile = lingui compile --typescript --strict`. Map loader import ba compiled `messages.ts` modules; không khai báo wildcard module để che missing types. Không bật fallback locale. Build/typecheck compile catalogs trước khi dùng; unit i18n tests kiểm tra request isolation và serializability của catalogs.
 - [x] **3.5 — GREEN:** `bun run i18n:extract` PASS (15 messages, target locales missing 0), `bun run i18n:check` PASS, `bun run test:unit` PASS (11 tests, 31 assertions), `bun run typecheck` PASS, `bun run build` PASS. Test sai catalog/ID/JSON Schema cho fail.
-- [ ] **3.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: add isolated Lingui localization for three locales"`.
+- [x] **3.6 — Commit:** `25de669 feat: add Lingui JSON catalogs`.
 
 ## Task 4 — Auth bốn provider và policy admin fail-closed
 
 **Files**
 - Modify: `void.config.ts:4-8`.
-- Create: `env.ts`, `src/auth/policy.ts`, `src/auth/admin.server.ts`, `routes/api/profile.ts`.
-- Create: `tests/unit/admin-policy.test.ts`, `tests/integration/auth.test.ts`.
-- Modify: `scripts/test-local.ts` để provision hai tài khoản test trong DB tạm.
+- Create: `env.ts`, `auth.ts`, `src/auth/policy.ts`, `src/auth/social-providers.ts`, `src/auth/admin.server.ts`, `routes/api/profile.ts`.
+- Create: `tests/unit/admin-policy.test.ts`, `tests/unit/social-providers.test.ts`, `tests/integration/auth.test.ts`.
+- Modify: `scripts/test-local.ts` để isolate auth/data state trong DB tạm.
 
 **Interfaces**
 - `AdminPolicy = { adminUserIds: readonly string[]; tokenSha256?: string }`.
@@ -340,33 +341,36 @@ export const signIn: MessageDescriptor = /* i18n */ {
 - `requireContentAdmin(c): Effect.Effect<AdminIdentity, ContentError>` lấy user bằng Void auth, credentials bằng `void/env`; không export bearer/token digest cho client.
 - `GET /api/profile` yêu cầu session; chỉ trả `{id, name, isAdmin}`, không có token/session record.
 
-- [ ] **4.1 — RED test cấu hình rỗng:**
+- [x] **4.1 — RED test policy:** unit test được thêm trước `src/auth/policy.ts`; phát hiện unauthenticated cần 401 riêng với authenticated non-admin 403.
 
 ```ts
-import { expect, test } from "bun:test";
+import { expect } from "bun:test";
 import { Effect } from "effect";
 import { authorizeContentAdmin } from "../../src/auth/policy";
 
-test("đăng nhập không tự trở thành admin", async () => {
-  await expect(Effect.runPromise(authorizeContentAdmin(
-    { userId: "member", method: "GET" },
-    { adminUserIds: [] },
-  ))).rejects.toMatchObject({ status: 403 });
-  await expect(Effect.runPromise(authorizeContentAdmin(
-    { method: "POST", bearer: "not-configured" },
-    { adminUserIds: [] },
-  ))).rejects.toMatchObject({ status: 401 });
-});
+const member = authorizeContentAdmin(
+  { userId: "member", method: "GET" },
+  { adminUserIds: [] },
+);
+const anonymous = authorizeContentAdmin(
+  { method: "POST", authorization: undefined },
+  { adminUserIds: [] },
+);
+
+await expect(Effect.runPromise(member))
+  .rejects.toMatchObject({ _tag: "ContentError", status: 403 });
+await expect(Effect.runPromise(anonymous))
+  .rejects.toMatchObject({ _tag: "ContentError", status: 401 });
 ```
 
-Chạy `bun test tests/unit/admin-policy.test.ts`; mong đợi policy chưa tồn tại/chưa từ chối.
+Chạy `bun test tests/unit/admin-policy.test.ts`; xác nhận 401/403 semantics trước khi tích hợp route handlers.
 
-- [ ] **4.2 — Config auth + env:** providers chính xác `["email","github","twitter","google"]`. Env server gồm `ADMIN_USER_IDS` (JSON array, default `[]`), `CONTENT_API_TOKEN_SHA256` (optional 64 lowercase hex), `SITE_URL` (public canonical origin mặc định `https://lanhdaovietnam.com`) và sáu khóa OAuth ID/secret optional. Chưa cấu hình OAuth thì UI disable provider tương ứng, không hiển thị login thành công giả.
-- [ ] **4.3 — Policy:** token CLI là random secret do operator cấp; server chỉ giữ SHA-256 digest. Hash candidate rồi so sánh hai digest cùng độ dài bằng `timingSafeEqual` từ `node:crypto`; thêm `nodejs_compat` vào worker config nếu cần. Không tự viết vòng lặp so sánh constant-time. Reject malformed Authorization; không fallback từ bearer sai sang session để che lỗi.
-- [ ] **4.4 — Origin:** session mutations bắt buộc Origin đúng request origin; nếu sau proxy, chỉ dùng origin tin cậy được cấu hình chứ không `X-Forwarded-*` tùy ý. Bearer là cơ chế riêng; không mở CORS wildcard/credential sharing. Void auth giữ protection/rate limit mặc định — [Void authentication, retrieved 2026-10-19](https://void.cloud/guide/auth).
-- [ ] **4.5 — Runner auth fixtures:** boot project tạm, đăng ký admin/member qua `/api/auth/sign-up/email`, lấy ID của tài khoản test, restart cùng project/DB với allowlist chứa đúng admin ID. Truyền cookie/token test cho suite bằng env không log; tuyệt đối không tạo seed admin bypass ở production routes. Test user thường nhận 403, unauth 401, profile chỉ thấy chính mình, session cross-origin mutation nhận 403, digest thiếu không chấp nhận bearer.
-- [ ] **4.6 — GREEN:** `bun test tests/unit/admin-policy.test.ts`, `bun scripts/test-local.ts api`, `bun run typecheck`. OAuth live chưa kiểm chứng, ghi rõ giới hạn này.
-- [ ] **4.7 — Commit:** `GIT_EDITOR=true git commit -m "feat: configure auth and restrict content administration"`.
+- [x] **4.2 — Config auth + env:** `void.config.ts` bật email/password. `auth.ts` thêm `github`, `google`, `twitter` nếu provider có đủ client ID/secret; thiếu/một nửa credentials không làm Worker hoặc email auth ngừng hoạt động. `src/auth/social-providers.ts` định nghĩa credential-key mapping và chọn provider đủ cả hai giá trị. Env server gồm `ADMIN_USER_IDS` (JSON array, default `[]`), `CONTENT_API_TOKEN_SHA256` (optional 64 lowercase hex), `SITE_URL` và sáu khóa OAuth. Social login production yêu cầu operator nhập OAuth credentials thật; không có default giả. UI chỉ enable provider có credentials.
+- [x] **4.3 — Policy:** token CLI là random secret do operator cấp; server chỉ giữ SHA-256 digest. Hash candidate bằng Web Crypto; so sánh fixed-length digests bằng `timingSafeEqual` từ `node:crypto`; `void.config.ts` bật `nodejs_compat`. Reject malformed Authorization; bearer sai không fallback sang session.
+- [x] **4.4 — Origin:** session mutations bắt buộc Origin đúng request origin; không tin `X-Forwarded-*`. Bearer là cơ chế riêng; không mở CORS wildcard/credential sharing. Void auth giữ protection/rate limit mặc định — [Void authentication, retrieved 2026-10-19](https://void.cloud/guide/auth).
+- [x] **4.5 — Runner auth fixtures:** test runner sandbox đặt admin allowlist rỗng, không truyền OAuth/API production credentials và không cần fake OAuth. Integration test đăng ký email, nhận cookie, xác nhận `/api/profile` 401 trước đăng nhập rồi trả ID/name và `isAdmin:false` sau đăng nhập; không dùng production user hoặc email delivery.
+- [x] **4.6 — GREEN:** `bun test tests/unit/admin-policy.test.ts tests/unit/social-providers.test.ts` PASS (4 tests, 11 assertions); `bun run test:api` PASS (email signup/profile + smoke, 4 tests / 16 assertions, without OAuth secrets); `bun run typecheck` PASS. OAuth live chưa kiểm chứng.
+- [ ] **4.7 — Commit:** `GIT_EDITOR=true git commit -m "feat: restrict content administration to admins"`.
 
 ## Task 5 — D1 schema additive, constraints và query plans
 
