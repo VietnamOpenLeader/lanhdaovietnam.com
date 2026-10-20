@@ -1,23 +1,20 @@
 {
   "extends": "./.void/tsconfig.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "jsx": "react-jsx",
     "strict": true,
-    "esModuleInterop": true,
+    "noUnusedLocals": true,
     "skipLibCheck": true,
-    "types": [
-      "void/env"
-    ]
-  },
-  "include": [
-    "src",
-    "pages",
-    "routes",
-    "middleware",
-    "crons",
-    "queues",
-    "db"
-  ]
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "types": ["vite/client", "void/env"],
+    "allowImportingTsExtensions": true
+  }
 }

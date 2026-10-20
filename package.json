@@ -1,10 +1,13 @@
 {
   "name": "lanhdaovietnam.com",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@void/react": "1.1.12"
+  },
   "devDependencies": {
     "void": "1.1.12",
     "vite": "^8.3.4"
