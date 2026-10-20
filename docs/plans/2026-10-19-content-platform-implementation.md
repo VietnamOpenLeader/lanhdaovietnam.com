@@ -390,7 +390,7 @@ Chạy `bun test tests/unit/admin-policy.test.ts`; xác nhận 401/403 semantics
 - Invariants: enums, published timestamp, event ordering, version > 0. CHECK/UNIQUE thực sự tồn tại trong SQL, không chỉ trong Zod.
 - Lineage: immutable ID, source=`d1`, translationKey, version.
 
-- [ ] **5.1 — RED migration test:** dùng SQLite memory, apply SQL migrations theo journal, không dùng database development.
+- [x] **5.1 — RED migration test:** dùng SQLite memory, apply SQL migrations theo journal, không dùng database development.
 
 ```ts
 import { Database } from "bun:sqlite";
@@ -412,10 +412,10 @@ test("migration mới giữ bảng posts cũ", async () => {
 
 Tạo `tests/migration-fixture.ts`: `applyProjectMigrations(db, range)` đọc journal ordered, chạy từng SQL với `db.exec`, hỗ trợ `through` inclusive/`after` exclusive. Không gọi Void remote CLI từ test. Trước thêm migration, assertion table mới phải FAIL.
 
-- [ ] **5.2 — Schema:** dùng `void/schema-d1`/`void/db` typed APIs; columns khớp `ContentRecord` (camelCase TS, snake_case SQL). `.notNull()` ở required fields; publishedAt và event fields nullable đúng contract. Generated SQL không được DROP/RENAME bảng `posts`.
-- [ ] **5.3 — Generate:** `bunx void db generate`; review SQL, snapshots/journal diff, auth tables được Void sinh sau Task 4. Không tự khai lại auth tables ở app schema.
-- [ ] **5.4 — Query plans:** test `EXPLAIN QUERY PLAN` cho public list có/không kind, point lookup và translations. Assert sử dụng index phù hợp, không `SCAN content_posts` toàn bảng và không temp sort cho hai public-list queries. Với cast/function trên ngày làm mất index, đổi query thay vì thêm cache che chi phí.
-- [ ] **5.5 — GREEN:** `bun test tests/unit/migrations.test.ts`, `bunx void db migrate` local, `bun scripts/test-local.ts api`. SQLite tests bổ sung duplicate/invalid locale/invalid event/version constraints. D1-runtime tests ở task sau vẫn bắt buộc vì SQLite không chứng minh toàn bộ D1 behavior.
+- [x] **5.2 — Schema:** dùng `void/schema-d1`/`void/db` typed APIs; columns khớp `ContentRecord` (camelCase TS, snake_case SQL). `.notNull()` ở required fields; publishedAt và event fields nullable đúng contract. Generated SQL không được DROP/RENAME bảng `posts`.
+- [x] **5.3 — Generate:** `bunx void db generate`; review SQL, snapshots/journal diff, auth tables được Void sinh sau Task 4. Không tự khai lại auth tables ở app schema.
+- [x] **5.4 — Query plans:** test `EXPLAIN QUERY PLAN` cho public list có/không kind, point lookup và translations. Assert sử dụng index phù hợp, không `SCAN content_posts` toàn bảng và không temp sort cho hai public-list queries. Với cast/function trên ngày làm mất index, đổi query thay vì thêm cache che chi phí.
+- [x] **5.5 — GREEN:** `bun test tests/unit/migrations.test.ts`, `bunx void db migrate` local, `bun scripts/test-local.ts api`. SQLite tests bổ sung duplicate/invalid locale/invalid event/version constraints. D1-runtime tests ở task sau vẫn bắt buộc vì SQLite không chứng minh toàn bộ D1 behavior.
 - [ ] **5.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: add localized content tables without altering legacy posts"`.
 
 ## Task 6 — Repository, safe rendering và CRUD API
