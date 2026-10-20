@@ -37,7 +37,7 @@ The email provider is local-first; no password reset/verification email workflow
 
 ## Pre-deploy conflict check
 
-`bun run content check --api` sends candidate Markdown metadata from the local Pages tree to `/api/content-check`. The route is read-only and checks bounded batches of translation keys against published D1 records. It does not send Markdown bodies or change either source.
+`bun run content check --api` sends candidate Markdown metadata from the local Pages tree to `/api/content-check`. The route is read-only and checks bounded batches of translation keys against every D1 record, including drafts, because all D1 rows reserve translation ownership. It does not send Markdown bodies or change either source.
 
 The `void-deploy` GitHub workflow runs local gates, then this preflight, then deploy/migrations. Set GitHub variable `CONTENT_API_URL` and secret `CONTENT_CHECK_TOKEN`. Missing credentials, an unavailable endpoint, or a conflict stops the workflow; there is no silent bypass. The check is **not** a distributed lock: avoid concurrent content writes during a deployment preflight.
 

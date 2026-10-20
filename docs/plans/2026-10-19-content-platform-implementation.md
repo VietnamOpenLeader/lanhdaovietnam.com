@@ -27,7 +27,7 @@
 - Chỉ admin được CRUD. Admin web theo user ID server-side; CLI theo bearer token quản trị nội dung. Cấu hình thiếu nghĩa là từ chối.
 - Không secret trong Git, CLI arguments, URL, stdout, browser props hoặc `VITE_*`. `.env` chỉ dùng local; production secret nhập qua Void CLI bởi operator.
 - Không `db reset`, `db seed`, `db push`, remote mode, remote migration hay deploy trong thực thi tự động. Dùng migrations additive và `void db migrate` local.
-- Bảng `posts` cũ và migration `20261019015751_vengeful_omega_red.sql` giữ nguyên; tạo `content_posts` riêng. Không tự chuyển dữ liệu cũ vì thiếu locale/slug/status.
+- Giữ nguyên bảng `posts` cũ và migration `20261019015751_vengeful_omega_red.sql`; migration mới backfill mỗi hàng legacy thành bài viết tiếng Việt với key/slug `legacy-post-<id>`, theo quyết định được người dùng chấp thuận sau review. Chỉ hàng có title/body hợp lệ và `created_at` parse được, không ở tương lai, mới được publish; hàng khác được giữ thành draft, còn nguồn legacy không đổi. Trước khi rebuild, migration từ chối trạng thái `content_posts` cũ có body trắng, translation group lẫn kind, hoặc xung đột namespace legacy.
 - Endpoint demo `/api/posts` đổi sang hợp đồng mới được ghi rõ trong README. Xóa ví dụ TanStack và lời gọi demo không còn tương thích; không giả vờ giữ nguyên API cũ.
 - Không full-table body scan cho danh mục, không N+1 để lấy bản dịch, không shared ISR cho danh mục/D1/auth trong đợt đầu.
 - Không dashboard biên tập, upload media, full-text search, scheduling, tự dịch hoặc tự đồng bộ hai chiều.
@@ -416,7 +416,7 @@ Tạo `tests/migration-fixture.ts`: `applyProjectMigrations(db, range)` đọc j
 - [x] **5.3 — Generate:** `bunx void db generate`; review SQL, snapshots/journal diff, auth tables được Void sinh sau Task 4. Không tự khai lại auth tables ở app schema.
 - [x] **5.4 — Query plans:** test `EXPLAIN QUERY PLAN` cho public list có/không kind, point lookup và translations. Assert sử dụng index phù hợp, không `SCAN content_posts` toàn bảng và không temp sort cho hai public-list queries. Với cast/function trên ngày làm mất index, đổi query thay vì thêm cache che chi phí.
 - [x] **5.5 — GREEN:** `bun test tests/unit/migrations.test.ts`, `bunx void db migrate` local, `bun scripts/test-local.ts api`. SQLite tests bổ sung duplicate/invalid locale/invalid event/version constraints. D1-runtime tests ở task sau vẫn bắt buộc vì SQLite không chứng minh toàn bộ D1 behavior.
-- [x] **5.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: add localized content tables without altering legacy posts"`.
+- [x] **5.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: add localized content tables and legacy backfill"`.
 
 ## Task 6 — Repository, safe rendering và CRUD API
 

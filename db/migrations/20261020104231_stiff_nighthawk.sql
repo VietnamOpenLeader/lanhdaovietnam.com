@@ -1,4 +1,33 @@
 -- void:allow-destructive
+DROP TABLE IF EXISTS temp.`__content_posts_migration_guard`;--> statement-breakpoint
+CREATE TEMP TABLE `__content_posts_migration_guard` (
+	`valid` integer NOT NULL CHECK (`valid` = 1)
+);--> statement-breakpoint
+INSERT INTO `__content_posts_migration_guard` (`valid`)
+SELECT CASE
+	WHEN EXISTS (
+		SELECT 1 FROM `content_posts`
+		WHERE length(trim(`body`, char(9, 10, 11, 12, 13, 32))) = 0
+	) THEN 0
+	WHEN EXISTS (
+		SELECT 1 FROM `content_posts`
+		GROUP BY `translation_key`
+		HAVING COUNT(DISTINCT `kind`) > 1
+	) THEN 0
+	WHEN EXISTS (
+		SELECT 1
+		FROM `posts` AS legacy
+		JOIN `content_posts` AS current
+			ON current.`id` = 'legacy-post-' || legacy.`id`
+			OR current.`translation_key` = 'legacy-post-' || legacy.`id`
+			OR (
+				current.`locale` = 'vi'
+				AND current.`slug` = 'legacy-post-' || legacy.`id`
+			)
+	) THEN 0
+	ELSE 1
+END;--> statement-breakpoint
+DROP TABLE `__content_posts_migration_guard`;--> statement-breakpoint
 PRAGMA foreign_keys=OFF;--> statement-breakpoint
 CREATE TABLE `__new_content_posts` (
 	`id` text PRIMARY KEY NOT NULL,
@@ -73,6 +102,7 @@ WITH legacy_posts AS (
 		`id`,
 		`title`,
 		`body`,
+		strftime('%Y-%m-%dT%H:%M:%fZ', `created_at`) AS `parsed_created_at`,
 		COALESCE(
 			strftime('%Y-%m-%dT%H:%M:%fZ', `created_at`),
 			strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
@@ -102,6 +132,7 @@ SELECT
 	CASE
 		WHEN `valid_title`
 			AND `valid_body`
+			AND `parsed_created_at` IS NOT NULL
 			AND `created_at_iso` <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
 		THEN 'published'
 		ELSE 'draft'
@@ -109,6 +140,7 @@ SELECT
 	CASE
 		WHEN `valid_title`
 			AND `valid_body`
+			AND `parsed_created_at` IS NOT NULL
 			AND `created_at_iso` <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
 		THEN `created_at_iso`
 		ELSE NULL

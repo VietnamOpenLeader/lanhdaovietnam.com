@@ -7,7 +7,7 @@ The implementation follows the approved plan. These choices fill in details the 
 ### Use a separate read-only credential for deploy preflight
 
 - **When:** Tasks 10–11.
-- **Scenario:** CI checks whether a candidate Markdown translation key already belongs to published D1 content. The check needs access to conflict metadata, not permission to publish, edit, or delete articles.
+- **Scenario:** CI checks whether a candidate Markdown translation key already belongs to any D1 record, including a draft. The check needs access to conflict metadata, not permission to publish, edit, or delete articles.
 - **Plan gap:** It requested a read-only preflight token but left its relationship to the existing CRUD token open.
 - **Decision:** Accept either an admin session/CRUD token or an independent `CONTENT_CHECK_TOKEN` for the preflight route; the dedicated credential only authenticates the read-only endpoint and is stored server-side as a digest.
 - **Reach:** CI can run the preflight without holding a credential capable of modifying content.
@@ -84,9 +84,18 @@ Playwright E2E ran successfully against the installed system Chrome in desktop a
 - **When:** Post-review migration remediation.
 - **Scenario:** A legacy row with an empty or oversized body cannot be inserted as published under the new body contract without failing the whole migration.
 - **Plan gap:** The original plan required retaining legacy rows but did not specify conversion behavior for malformed legacy records.
-- **Decision:** Copy every row to a deterministic Vietnamese D1 article. Valid rows become published; invalid rows become drafts with a nonblank review placeholder. Keep the original title/body row unchanged in `posts`.
+- **Decision:** Copy every row to a deterministic Vietnamese D1 article. Rows with valid title/body and a parseable, non-future source timestamp become published; invalid rows become drafts with a nonblank review placeholder. Keep the original title/body row unchanged in `posts`.
 - **Reach:** Valid legacy content appears in the new site; malformed records remain recoverable from `posts` and are not silently discarded. The existing `GET /api/posts` starter contract intentionally changes to the approved paginated catalog response.
 - **Verdict / confidence:** sound / medium.
+
+### Refuse unsafe legacy table rebuilds before destructive statements
+
+- **When:** Final migration-safety remediation.
+- **Scenario:** A database created under the earlier content schema may legally contain a blank body or mixed-kind translation group. Copying those rows into the stricter rebuilt table can fail or preserve invalid lineage; a legacy backfill key may also overlap a row already created in D1.
+- **Plan gap:** The approved backfill decision did not specify how to handle intermediate schema states or namespace collisions.
+- **Decision:** Run a migration precondition before creating the replacement table. It fails closed for blank existing bodies, mixed-kind groups, or a collision with a deterministic legacy ID/key/slug. Execute migration statements individually in the SQLite test fixture so the first failed statement stops the migration test.
+- **Reach:** Operators must resolve database conflicts before retrying migration; the migration never silently drops or overwrites those rows. Malformed legacy dates remain drafts, not published records.
+- **Verdict / confidence:** sound / high.
 
 ### Use a bounded wire-body allowance
 

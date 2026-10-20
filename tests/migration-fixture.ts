@@ -32,6 +32,9 @@ export async function applyProjectMigrations(db: Database, range: MigrationRange
 
   for (const entry of entries) {
     const migration = await readFile(join(migrationsDirectory, `${entry.tag}.sql`), "utf8");
-    db.exec(migration);
+    for (const statement of migration.split("--> statement-breakpoint")) {
+      const sql = statement.trim();
+      if (sql.length > 0) db.exec(sql);
+    }
   }
 }

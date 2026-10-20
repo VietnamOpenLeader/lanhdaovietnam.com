@@ -36,7 +36,7 @@ bun run i18n:check
 
 Use D1 for content that changes at runtime. The CLI calls the local or configured API; it never writes to a Worker filesystem.
 
-The additive legacy migration keeps the original `posts` table unchanged and copies rows into Vietnamese article records using stable `legacy-post-<id>` slugs and translation keys. Valid legacy rows become published articles; rows with invalid title/body metadata become drafts with a note to review the original row.
+The additive legacy migration keeps the original `posts` table unchanged and copies rows into Vietnamese article records using stable `legacy-post-<id>` slugs and translation keys. Rows with valid title/body metadata and a parseable, non-future `created_at` become published articles; records with invalid title/body/date metadata become drafts with a note to review the original row. Before rebuilding `content_posts`, the migration stops if existing records have blank bodies, mixed content kinds within a translation group, or a key/slug collision with a legacy row.
 
 ```sh
 export CONTENT_API_URL=http://127.0.0.1:5173
