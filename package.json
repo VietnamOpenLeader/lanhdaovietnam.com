@@ -3,10 +3,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "typecheck": "void prepare && tsc --noEmit",
+    "typecheck": "void prepare && bun run i18n:compile && tsc --noEmit",
     "test:api": "bun scripts/test-local.ts api",
+    "test:unit": "bun run i18n:compile && bun test tests/unit",
     "content:check": "bun scripts/check-content.ts",
-    "build": "bun run content:check && vite build"
+    "i18n:extract": "lingui extract",
+    "i18n:check": "bun scripts/check-catalogs.ts && lingui check sync",
+    "i18n:compile": "lingui compile --typescript --strict",
+    "build": "bun run content:check && bun run i18n:check && bun run i18n:compile && vite build"
   },
   "dependencies": {
     "@cloudflare/kumo": "2.14.0",

@@ -1,11 +1,13 @@
 import { Schema } from "effect";
+import { locales } from "../i18n/locales";
 
-export const locales = ["vi", "en", "zh-CN"] as const;
+export { locales } from "../i18n/locales";
+export type { Locale } from "../i18n/locales";
+
 export const contentKinds = ["article", "news", "event"] as const;
 export const contentStatuses = ["draft", "published"] as const;
 export const maxBodyBytes = 200 * 1024;
 
-export type Locale = (typeof locales)[number];
 export type ContentKind = (typeof contentKinds)[number];
 export type ContentStatus = (typeof contentStatuses)[number];
 export type ContentSource = "markdown" | "d1";

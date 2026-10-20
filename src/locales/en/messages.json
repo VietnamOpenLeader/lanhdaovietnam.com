@@ -1,0 +1,197 @@
+{
+  "content.next": {
+    "message": "Bài viết tiếp theo",
+    "placeholders": {},
+    "comments": [
+      "Nhãn link đến trang kế tiếp trong danh sách."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Next article"
+  },
+  "content.empty": {
+    "message": "Chưa có bài viết.",
+    "placeholders": {},
+    "comments": [
+      "Thông báo thư viện đang trống cho ngôn ngữ hiện tại."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "No articles yet."
+  },
+  "language.unavailable": {
+    "message": "Chưa có bản dịch cho ngôn ngữ này.",
+    "placeholders": {},
+    "comments": [
+      "Thông báo khi một bài viết chưa được dịch sang ngôn ngữ yêu cầu."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "A translation is not available in this language yet."
+  },
+  "auth.pending": {
+    "message": "Đang đăng nhập…",
+    "placeholders": {},
+    "comments": [
+      "Thông báo trạng thái trong lúc gửi yêu cầu đăng nhập."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Signing in…"
+  },
+  "auth.signIn": {
+    "message": "Đăng nhập",
+    "placeholders": {},
+    "comments": [
+      "Nhãn nút gửi form đăng nhập."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Sign in"
+  },
+  "auth.signOut": {
+    "message": "Đăng xuất",
+    "placeholders": {},
+    "comments": [
+      "Nhãn nút đăng xuất."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Sign out"
+  },
+  "site.description": {
+    "message": "Đi về cội nguồn, định hình tương lai.",
+    "placeholders": {},
+    "comments": [
+      "Câu giới thiệu ngắn của website."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Honoring our roots and shaping the future."
+  },
+  "auth.email": {
+    "message": "Email",
+    "placeholders": {},
+    "comments": [
+      "Nhãn trường nhập email."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Email"
+  },
+  "auth.error": {
+    "message": "Không thể xử lý yêu cầu. Vui lòng thử lại.",
+    "placeholders": {},
+    "comments": [
+      "Thông báo lỗi đăng nhập chung; không hiển thị nội dung lỗi nội bộ."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "We could not complete the request. Please try again."
+  },
+  "site.title": {
+    "message": "Lãnh đạo Việt Nam",
+    "placeholders": {},
+    "comments": [
+      "Tên sản phẩm hiển thị trong tiêu đề trang chủ."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Leaders of Vietnam"
+  },
+  "auth.password": {
+    "message": "Mật khẩu",
+    "placeholders": {},
+    "comments": [
+      "Nhãn trường nhập mật khẩu."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Password"
+  },
+  "auth.signUp": {
+    "message": "Tạo tài khoản",
+    "placeholders": {},
+    "comments": [
+      "Nhãn nút gửi form đăng ký."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Create account"
+  },
+  "auth.name": {
+    "message": "Tên hiển thị",
+    "placeholders": {},
+    "comments": [
+      "Nhãn trường nhập tên trong form đăng ký."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Display name"
+  },
+  "nav.library": {
+    "message": "Thư viện",
+    "placeholders": {},
+    "comments": [
+      "Mục điều hướng đến thư viện bài viết."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Library"
+  },
+  "nav.home": {
+    "message": "Trang chủ",
+    "placeholders": {},
+    "comments": [
+      "Mục điều hướng đến trang chủ."
+    ],
+    "origin": [
+      [
+        "src/i18n/messages.ts"
+      ]
+    ],
+    "translation": "Home"
+  }
+}

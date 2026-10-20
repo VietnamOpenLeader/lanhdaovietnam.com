@@ -261,7 +261,7 @@ Chạy `bun test tests/unit/content-contracts.test.ts tests/unit/markdown.test.t
 - [x] **2.4 — Implement `buildMarkdownIndex(pages)` thuần:** nhận metadata shape của `@void/md/pages`, validate bằng `contentMetadataSchema` vì virtual manifest không có body; optional event/published fields thiếu trong frontmatter được normalize về `null` trước decode; kiểm tra locale/slug/title từ path trùng frontmatter; published-only, translationKey unique theo locale, group kind nhất quán. Bài trong `pages/` có status khác published làm build fail. `manifest.server.ts` là nơi import virtual module, không import nó vào unit tests hoặc CLI Bun.
 - [x] **2.5 — `check-content.ts`:** kiểm tra file thực dưới ba thư mục library bằng `parseMarkdownContent(source)` từ `src/content/frontmatter.ts`; gọi `stat` và từ chối file >256 KiB trước khi đọc nội dung. Dùng `gray-matter` với YAML 1.2 engine override qua `yaml@2`, unique keys, custom tags tắt, alias expansion tối đa 20; chỉ chấp nhận schema metadata đã validate. Không tự viết parser frontmatter regex hoặc nhận YAML tag JavaScript. Tạo bài mẫu ba ngôn ngữ với cùng translationKey `origins`, khác nhóm `api-fixture` của D1 tests.
 - [x] **2.6 — GREEN:** `bun test tests/unit/content-contracts.test.ts tests/unit/markdown.test.ts tests/unit/markdown-index.test.ts` PASS (8 tests, 22 assertions; UTF-8 body limit); `bun run content:check` PASS (3 bài); `bun run typecheck` PASS; `bun run build` PASS với `@void/md/pages` manifest; `bun run test:api` PASS (3 tests, 11 assertions).
-- [ ] **2.7 — Commit:** `GIT_EDITOR=true git commit -m "feat: add Effect schemas and localized content contracts"`.
+- [x] **2.7 — Commit:** `c2239a6 feat: add Effect schemas and localized content contracts`.
 
 ## Task 3 — Lingui JSON và locale isolation
 
@@ -277,7 +277,7 @@ Chạy `bun test tests/unit/content-contracts.test.ts tests/unit/markdown.test.t
 - `src/i18n/messages.ts` dùng message descriptors có annotation `/* i18n */` để extractor nhận diện; không yêu cầu Babel macro plugin.
 - Các ID đầu tiên: `nav.home`, `nav.library`, `auth.signIn`, `auth.signUp`, `auth.email`, `auth.password`, `auth.name`, `auth.error`, `auth.signOut`, `content.empty`, `content.next`, `language.unavailable`.
 
-- [ ] **3.1 — RED test cho isolation:**
+- [x] **3.1 — RED test cho isolation:** test được viết trước `runtime.tsx`; Ban đầu import thất bại vì module chưa có.
 
 ```ts
 import { expect, test } from "bun:test";
@@ -295,7 +295,7 @@ test("instance SSR không rò locale giữa request", async () => {
 });
 ```
 
-- [ ] **3.2 — Config dùng JSON formatter chính thức:**
+- [x] **3.2 — Config dùng JSON formatter chính thức:**
 
 ```ts
 import { defineConfig } from "@lingui/cli";
@@ -321,9 +321,9 @@ export const signIn: MessageDescriptor = /* i18n */ {
 };
 ```
 
-- [ ] **3.3 — Schema JSON:** top-level object key là message ID; mỗi entry có translation string và metadata đúng output formatter `6.10.0`. Sinh catalog thật bằng extract rồi chốt schema theo output đã quan sát; không đoán metadata keys hoặc bật `additionalProperties: true` vô hạn. Reject entry không phải object, bản dịch sai kiểu và thiếu ID bắt buộc giữa locales.
-- [ ] **3.4 — Scripts:** `i18n:extract = lingui extract`, `i18n:check = bun scripts/check-catalogs.ts && lingui check sync`, `i18n:compile = lingui compile --typescript --strict`. Map loader import ba compiled `messages.ts` modules để TypeScript có kiểu chính xác; không khai báo wildcard module `*.js` để che missing types. Không bật fallback locale để che thiếu bản dịch. Build phải compile trước Vite. Unit i18n tests chạy sau compile. Assert compiled catalogs serialize/deserialize không mất message data; chỉ dùng default compiled data modules, không đưa runtime functions vào island props.
-- [ ] **3.5 — GREEN:** `bun run i18n:extract`, `bun run i18n:check`, `bun run i18n:compile`, `bun test tests/unit/i18n.test.ts tests/unit/catalog-schema.test.ts`. Catalog lỗi ICU phải làm compile nonzero; kiểm tra schema riêng không đủ.
+- [x] **3.3 — Schema JSON:** top-level object key là message ID; mỗi entry phải có `translation`, `message`, `placeholders`, `comments`, `origin`, optional `context` và `obsolete` đúng output đã sinh từ formatter `6.10.0`. `Ajv` strict mode reject unknown fields, sai types và shape origins; cross-catalog gate reject thiếu ID/bản dịch rỗng.
+- [x] **3.4 — Scripts:** `i18n:extract = lingui extract`, `i18n:check = bun scripts/check-catalogs.ts && lingui check sync`, `i18n:compile = lingui compile --typescript --strict`. Map loader import ba compiled `messages.ts` modules; không khai báo wildcard module để che missing types. Không bật fallback locale. Build/typecheck compile catalogs trước khi dùng; unit i18n tests kiểm tra request isolation và serializability của catalogs.
+- [x] **3.5 — GREEN:** `bun run i18n:extract` PASS (15 messages, target locales missing 0), `bun run i18n:check` PASS, `bun run test:unit` PASS (11 tests, 31 assertions), `bun run typecheck` PASS, `bun run build` PASS. Test sai catalog/ID/JSON Schema cho fail.
 - [ ] **3.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: add isolated Lingui localization for three locales"`.
 
 ## Task 4 — Auth bốn provider và policy admin fail-closed

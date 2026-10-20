@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Lingui full JSON catalog",
+  "type": "object",
+  "minProperties": 1,
+  "patternProperties": {
+    "^[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*$": {
+      "type": "object",
+      "required": ["message", "placeholders", "comments", "origin", "translation"],
+      "properties": {
+        "message": { "type": "string", "minLength": 1 },
+        "translation": { "type": "string" },
+        "comments": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "origin": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": [
+              { "type": "string", "minLength": 1 }
+            ],
+            "minItems": 1,
+            "maxItems": 1,
+            "additionalItems": false
+          }
+        },
+        "placeholders": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "context": { "type": "string" },
+        "obsolete": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
