@@ -1,12 +1,42 @@
 {
   "name": "lanhdaovietnam.com",
+  "type": "module",
   "scripts": {
     "dev": "vite",
+    "typecheck": "void prepare && tsc --noEmit",
+    "test:api": "bun scripts/test-local.ts api",
     "build": "vite build"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@cloudflare/kumo": "2.14.0",
+    "@lingui/core": "6.10.0",
+    "@lingui/react": "6.10.0",
+    "@phosphor-icons/react": "2.1.10",
+    "@void/md": "1.1.12",
+    "@void/react": "1.1.12",
+    "@xstate/effect": "1.0.0-alpha.9",
+    "@xstate/react": "7.0.0-alpha.6",
+    "effect": "4.0.5",
+    "gray-matter": "4.0.3",
+    "markdown-it": "15.0.3",
+    "react": "19",
+    "react-dom": "19",
+    "xstate": "6.0.0-alpha.70",
+    "yaml": "2"
+  },
   "devDependencies": {
-    "void": "1.1.12",
-    "vite": "^8.3.4"
+    "@lingui/cli": "6.10.0",
+    "@lingui/format-json": "6.10.0",
+    "@playwright/test": "1.64.1",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/bun": "1.4.3",
+    "@types/markdown-it": "14.2.0",
+    "@types/react": "19",
+    "@types/react-dom": "19",
+    "ajv": "8.20.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3",
+    "vite": "^8.3.4",
+    "void": "1.1.12"
   }
 }

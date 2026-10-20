@@ -1,23 +1,25 @@
 {
   "extends": "./.void/tsconfig.json",
+  "include": [
+    "src/**/*.ts", "src/**/*.tsx", "pages/**/*.ts", "pages/**/*.tsx",
+    "routes/**/*.ts", "middleware/**/*.ts", "db/**/*.ts",
+    "scripts/**/*.ts", "tests/**/*.ts", "vite.config.mts", "void.config.ts"
+  ],
+  "exclude": ["src/router.tsx", "src/routes/**", ".void/test-projects/**"],
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
     "strict": true,
-    "esModuleInterop": true,
+    "noUnusedLocals": true,
     "skipLibCheck": true,
-    "types": [
-      "void/env"
-    ]
-  },
-  "include": [
-    "src",
-    "pages",
-    "routes",
-    "middleware",
-    "crons",
-    "queues",
-    "db"
-  ]
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "allowImportingTsExtensions": true,
+    "types": ["vite/client", "void/env", "bun"]
+  }
 }
