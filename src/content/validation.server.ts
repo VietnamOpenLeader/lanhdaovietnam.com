@@ -14,6 +14,7 @@ export interface ContentListQuery {
   readonly locale: Locale;
   readonly kind?: ContentKind;
   readonly limit: number;
+  readonly cursor?: string;
 }
 
 export interface VersionedContentInput {
@@ -68,9 +69,12 @@ export function parseContentListQuery(query: URLSearchParams): ContentListQuery 
       limit: limitValue === null ? 20 : Number(limitValue),
       cursor: query.get("cursor"),
     });
-    return parsed.kind === undefined
-      ? { locale: parsed.locale, limit: parsed.limit }
-      : { locale: parsed.locale, kind: parsed.kind, limit: parsed.limit };
+    return {
+      locale: parsed.locale,
+      ...(parsed.kind === undefined ? {} : { kind: parsed.kind }),
+      limit: parsed.limit,
+      ...(parsed.cursor === null ? {} : { cursor: parsed.cursor }),
+    };
   } catch {
     throw new ContentError({ status: 400, code: "VALIDATION" });
   }

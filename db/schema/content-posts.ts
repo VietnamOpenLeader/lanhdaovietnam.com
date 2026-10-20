@@ -7,19 +7,20 @@ import {
   text,
   uniqueIndex,
 } from "void/schema-d1";
+import type { ContentKind, ContentStatus, Locale } from "../../src/content/contracts";
 
 export const contentPosts = sqliteTable(
   "content_posts",
   {
     id: text("id").primaryKey(),
     translationKey: text("translation_key").notNull(),
-    locale: text("locale").notNull(),
+    locale: text("locale").$type<Locale>().notNull(),
     slug: text("slug").notNull(),
-    kind: text("kind").notNull(),
+    kind: text("kind").$type<ContentKind>().notNull(),
     title: text("title").notNull(),
     description: text("description").notNull(),
     body: text("body").notNull(),
-    status: text("status").notNull(),
+    status: text("status").$type<ContentStatus>().notNull(),
     publishedAt: text("published_at"),
     startsAt: text("starts_at"),
     endsAt: text("ends_at"),

@@ -135,6 +135,15 @@ test("public list, kind list, slug lookup, and translations use their indexes", 
         ORDER BY published_at DESC, id DESC LIMIT 20`,
     },
     {
+      index: "content_locale_published",
+      sql: `EXPLAIN QUERY PLAN SELECT id, title, description, kind, published_at
+        FROM content_posts
+        WHERE locale = 'vi' AND status = 'published'
+          AND (published_at < '2026-10-19T00:00:00.000Z'
+            OR (published_at = '2026-10-19T00:00:00.000Z' AND id < 'ffffffff'))
+        ORDER BY published_at DESC, id DESC LIMIT 20`,
+    },
+    {
       index: "content_locale_slug",
       sql: "EXPLAIN QUERY PLAN SELECT * FROM content_posts WHERE locale = 'vi' AND slug = 'welcome'",
     },

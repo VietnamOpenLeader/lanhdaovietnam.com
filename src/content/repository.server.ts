@@ -1,8 +1,9 @@
 import { Context, Effect } from "effect";
-import { and, desc, eq, sql } from "void/db";
+import { and, desc, eq, lt, lte, or, sql } from "void/db";
 import { contentPosts } from "@schema";
 import { ContentError } from "../core/errors";
 import type { ContentInput, ContentKind, Locale } from "./contracts";
+import type { Cursor } from "./pagination";
 
 export type ContentRecord = typeof contentPosts.$inferSelect;
 export type ContentMetadataRecord = Pick<
@@ -30,12 +31,16 @@ export interface ContentRepositoryShape {
     readonly kind?: ContentKind;
     readonly includeDrafts: boolean;
     readonly limit: number;
+    readonly cursor?: Cursor;
   }) => Effect.Effect<ReadonlyArray<ContentMetadataRecord>, ContentError>;
   readonly getById: (id: string) => Effect.Effect<ContentRecord, ContentError>;
   readonly getPublished: (
     locale: Locale,
     slug: string,
   ) => Effect.Effect<ContentRecord, ContentError>;
+  readonly listPublishedTranslations: (
+    translationKey: string,
+  ) => Effect.Effect<ReadonlyArray<ContentMetadataRecord>, ContentError>;
   readonly create: (input: ContentInput) => Effect.Effect<ContentRecord, ContentError>;
   readonly replace: (
     id: string,
@@ -71,12 +76,26 @@ function databaseEffect<A>(operation: () => Promise<A>): Effect.Effect<A, Conten
 
 function makeRepository(database: typeof import("void/db").db): ContentRepositoryShape {
   return {
-    list: ({ locale, kind, includeDrafts, limit }) =>
+    list: ({ locale, kind, includeDrafts, limit, cursor }) =>
       databaseEffect(async () => {
+        const d1CursorId = cursor?.key.startsWith("d1:")
+          ? cursor.key.slice("d1:".length)
+          : null;
         const conditions = [
           eq(contentPosts.locale, locale),
           ...(includeDrafts ? [] : [eq(contentPosts.status, "published")]),
           ...(kind ? [eq(contentPosts.kind, kind)] : []),
+          ...(cursor
+            ? [d1CursorId === null
+              ? lte(contentPosts.publishedAt, cursor.publishedAt)
+              : or(
+                lt(contentPosts.publishedAt, cursor.publishedAt),
+                and(
+                  eq(contentPosts.publishedAt, cursor.publishedAt),
+                  lt(contentPosts.id, d1CursorId),
+                ),
+              )]
+            : []),
         ];
         return database.select({
           id: contentPosts.id,
@@ -119,6 +138,32 @@ function makeRepository(database: typeof import("void/db").db): ContentRepositor
         if (!record) throw new ContentError({ status: 404, code: "NOT_FOUND" });
         return record;
       }),
+    listPublishedTranslations: (translationKey) =>
+      databaseEffect(() =>
+        database.select({
+          id: contentPosts.id,
+          translationKey: contentPosts.translationKey,
+          locale: contentPosts.locale,
+          slug: contentPosts.slug,
+          kind: contentPosts.kind,
+          title: contentPosts.title,
+          description: contentPosts.description,
+          status: contentPosts.status,
+          publishedAt: contentPosts.publishedAt,
+          startsAt: contentPosts.startsAt,
+          endsAt: contentPosts.endsAt,
+          location: contentPosts.location,
+          createdAt: contentPosts.createdAt,
+          updatedAt: contentPosts.updatedAt,
+          version: contentPosts.version,
+        })
+          .from(contentPosts)
+          .where(and(
+            eq(contentPosts.translationKey, translationKey),
+            eq(contentPosts.status, "published"),
+          ))
+          .orderBy(desc(contentPosts.locale)),
+      ),
     create: (input) =>
       databaseEffect(async () => {
         const now = new Date().toISOString();

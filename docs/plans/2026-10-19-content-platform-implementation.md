@@ -492,7 +492,7 @@ test("D1 Markdown không thực thi raw HTML hoặc javascript URL", () => {
 Giữ URL validation mặc định an toàn của renderer; không thêm unsafe HTML plugin. Nếu cần images, không cho event handler/raw attribute từ Markdown.
 
 - [x] **6.5 — GREEN:** `bun test tests/unit/render.test.ts`, `bun scripts/test-local.ts api`. Bổ sung duplicate creates song song, published→draft gỡ khỏi public ngay, 401/403, wrong token, missing/large JSON, deleted ID, cross-origin session và không lộ SQL/secret trong error.
-- [ ] **6.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: expose admin-only D1 content CRUD API"`.
+- [x] **6.6 — Commit:** `GIT_EDITOR=true git commit -m "feat: expose admin-only D1 content CRUD API"`.
 
 ## Task 7 — Danh mục hợp nhất và keyset pagination
 
@@ -508,7 +508,7 @@ Giữ URL validation mặc định an toàn của renderer; không thêm unsafe 
 - `listTranslations(translationKey, source): Promise<ContentSummary[]>` chỉ published, không query từng locale.
 - Public API list dùng `listCatalog`; admin view là D1-only và ghi rõ source.
 
-- [ ] **7.1 — RED test tie dates với hai nguồn:** viết unit test gọi `mergeSummaries(markdown,d1,limit)` trên hai mảng đã sort; khẳng định đúng page boundary khi input ingestion order khác nhau trước bước build-index. Key lexical là tie-break chung, publishedAt giảm dần. Fixtures tối thiểu 5 items cùng ngày, hai locales và hai kinds.
+- [x] **7.1 — RED test tie dates với hai nguồn:** viết unit test gọi `mergeSummaries(markdown,d1,limit)` trên hai mảng đã sort; khẳng định đúng page boundary khi input ingestion order khác nhau trước bước build-index. Key lexical là tie-break chung, publishedAt giảm dần. Fixtures tối thiểu 5 items cùng ngày, hai locales và hai kinds.
 
 ```ts
 import { expect, test } from "bun:test";
@@ -524,9 +524,9 @@ test("cursor không được tái sử dụng sang locale khác", () => {
 });
 ```
 
-- [ ] **7.2 — Implement:** partition manifest theo locale/kind một lần; binary search cursor, lấy K+1 metadata. D1 lấy K+1 bằng indexed keyset; không trộn comparator SQLite collation với JavaScript `localeCompare`. Dùng byte/ASCII ordering của key, timestamp normalized.
-- [ ] **7.3 — Complexity:** algorithm index seek + bounded merge `O(log N + log M + K)`; lineage key gồm source+ID/path. Khi cursor key nằm ở nguồn khác, D1 date/id predicate phải vẫn đúng tie ordering. Không lấy K bài mỗi nguồn rồi bỏ nextCursor trước khi xác định item cuối thực sự emit.
-- [ ] **7.4 — GREEN:** `bun test tests/unit/pagination.test.ts`, `bun scripts/test-local.ts api`. API test duyệt hết các page của dữ liệu cố định, khẳng định không lặp/mất bài, filter locale/kind và body không xuất hiện trong list. Ghi rõ keyset không phải snapshot bất biến khi nội dung bị sửa giữa các request.
+- [x] **7.2 — Implement:** partition manifest theo locale/kind một lần; binary search cursor, lấy K+1 metadata. D1 lấy K+1 bằng indexed keyset; không trộn comparator SQLite collation với JavaScript `localeCompare`. Dùng byte/ASCII ordering của key, timestamp normalized.
+- [x] **7.3 — Complexity:** algorithm index seek + bounded merge `O(log N + log M + K)`; lineage key gồm source+ID/path. Khi cursor key nằm ở nguồn khác, D1 date/id predicate phải vẫn đúng tie ordering. Không lấy K bài mỗi nguồn rồi bỏ nextCursor trước khi xác định item cuối thực sự emit.
+- [x] **7.4 — GREEN:** `bun test tests/unit/pagination.test.ts`, `bun scripts/test-local.ts api`. API test duyệt hết các page của dữ liệu cố định, khẳng định không lặp/mất bài, filter locale/kind và body không xuất hiện trong list. Ghi rõ keyset không phải snapshot bất biến khi nội dung bị sửa giữa các request.
 - [ ] **7.5 — Commit:** `GIT_EDITOR=true git commit -m "feat: merge Markdown and D1 content with bounded pagination"`.
 
 ## Task 8 — CLI CRUD, import và transport an toàn

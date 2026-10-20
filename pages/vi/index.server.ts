@@ -1,10 +1,9 @@
 import { defineHandler, type InferProps } from "void";
-import { markdownIndex } from "../../src/content/manifest.server";
+import { listCatalog } from "../../src/content/catalog.server";
 
-export const loader = defineHandler(() => {
-  const articles = markdownIndex
-    .filter((article) => article.locale === "vi")
-    .slice(0, 4)
+export const loader = defineHandler(async () => {
+  const catalog = await listCatalog({ locale: "vi", limit: 4 });
+  const articles = catalog.items
     .map(({ title, description, url }) => ({ title, description, url }));
   return {
     title: "Lãnh đạo Việt Nam",
