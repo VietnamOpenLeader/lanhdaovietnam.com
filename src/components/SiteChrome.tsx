@@ -25,16 +25,10 @@ export default function SiteChrome({ locale, translationLinks, children }: SiteC
             <a className="text-sm underline-offset-4 hover:underline" href={`/${locale}/`}>
               {_(navigationHome)}
             </a>
-            <a
-              className="text-sm underline-offset-4 hover:underline"
-              href={`/${locale}/#content`}
-            >
+            <a className="text-sm underline-offset-4 hover:underline" href={`/${locale}/#content`}>
               {_(navigationLibrary)}
             </a>
-            <a
-              className="text-sm underline-offset-4 hover:underline"
-              href={`/${locale}/login`}
-            >
+            <a className="text-sm underline-offset-4 hover:underline" href={`/${locale}/login`}>
               {_(signIn)}
             </a>
           </nav>

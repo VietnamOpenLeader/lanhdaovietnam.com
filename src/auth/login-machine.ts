@@ -14,14 +14,11 @@ const socialCommandSchema = Schema.Struct({
   provider: Schema.Literals(socialProviderNames),
 });
 
-export const loginCommandSchema = Schema.Union([
-  emailCommandSchema,
-  socialCommandSchema,
-]);
+export const loginCommandSchema = Schema.Union([emailCommandSchema, socialCommandSchema]);
 
 export type LoginCommand = Schema.Schema.Type<typeof loginCommandSchema>;
 
-export class LoginFailure extends Data.TaggedError("LoginFailure")<{}> {}
+export class LoginFailure extends Data.TaggedError("LoginFailure")<Record<never, never>> {}
 
 export interface LoginAuthShape {
   readonly authenticate: (command: LoginCommand) => Effect.Effect<void, LoginFailure>;
@@ -40,18 +37,18 @@ function authenticationEffect(
     Effect.match(auth.authenticate(command), {
       onSuccess: () => self.send({ type: "AUTHENTICATED" }),
       onFailure: () => self.send({ type: "FAILED" }),
-    })
+    }),
   );
 }
 
-function signOutEffect(
-  self: { send: (event: { readonly type: "SIGNED_OUT" | "FAILED" }) => void },
-): Effect.Effect<void, never, LoginAuth> {
+function signOutEffect(self: {
+  send: (event: { readonly type: "SIGNED_OUT" | "FAILED" }) => void;
+}): Effect.Effect<void, never, LoginAuth> {
   return LoginAuth.use((auth) =>
     Effect.match(auth.signOut(), {
       onSuccess: () => self.send({ type: "SIGNED_OUT" }),
       onFailure: () => self.send({ type: "FAILED" }),
-    })
+    }),
   );
 }
 

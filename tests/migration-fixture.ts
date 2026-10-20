@@ -20,14 +20,13 @@ const migrationsDirectory = join(import.meta.dir, "../db/migrations");
 const journalPath = join(migrationsDirectory, "meta/_journal.json");
 
 function includesIndex(index: number, range: MigrationRange): boolean {
-  return (range.through === undefined || index <= range.through)
-    && (range.after === undefined || index > range.after);
+  return (
+    (range.through === undefined || index <= range.through) &&
+    (range.after === undefined || index > range.after)
+  );
 }
 
-export async function applyProjectMigrations(
-  db: Database,
-  range: MigrationRange,
-): Promise<void> {
+export async function applyProjectMigrations(db: Database, range: MigrationRange): Promise<void> {
   const journal = JSON.parse(await readFile(journalPath, "utf8")) as MigrationJournal;
   const entries = journal.entries.filter(({ idx }) => includesIndex(idx, range));
 

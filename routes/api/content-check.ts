@@ -34,9 +34,7 @@ export const GET = defineHandler(async (context) => {
 export const POST = defineHandler(async (context) => {
   try {
     await Effect.runPromise(requireContentChecker(context));
-    const candidate = parseCandidate(
-      await readJsonBody(context.req.raw, maxCheckRequestBytes),
-    );
+    const candidate = parseCandidate(await readJsonBody(context.req.raw, maxCheckRequestBytes));
     return context.json(await checkContentConflicts(candidate.entries));
   } catch (error) {
     return contentErrorResponse(error);

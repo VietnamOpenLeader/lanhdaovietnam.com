@@ -1,18 +1,16 @@
 import { Effect } from "effect";
 import { auth } from "void/client";
 import type { Locale } from "../i18n/locales";
-import {
-  LoginFailure,
-  type LoginAuthShape,
-  type LoginCommand,
-} from "./login-machine";
+import { LoginFailure, type LoginAuthShape, type LoginCommand } from "./login-machine";
 
 function responseHasError(response: unknown): boolean {
-  return typeof response === "object"
-    && response !== null
-    && "error" in response
-    && response.error !== null
-    && response.error !== undefined;
+  return (
+    typeof response === "object" &&
+    response !== null &&
+    "error" in response &&
+    response.error !== null &&
+    response.error !== undefined
+  );
 }
 
 function authEffect(operation: () => Promise<unknown>): Effect.Effect<void, LoginFailure> {
@@ -25,26 +23,35 @@ function authEffect(operation: () => Promise<unknown>): Effect.Effect<void, Logi
   }).pipe(Effect.asVoid);
 }
 
-function authenticate(command: LoginCommand, callbackURL: string): Effect.Effect<void, LoginFailure> {
+function authenticate(
+  command: LoginCommand,
+  callbackURL: string,
+): Effect.Effect<void, LoginFailure> {
   if (command.kind === "social") {
-    return authEffect(() => auth.signIn.social({
-      provider: command.provider,
-      callbackURL,
-    }));
+    return authEffect(() =>
+      auth.signIn.social({
+        provider: command.provider,
+        callbackURL,
+      }),
+    );
   }
   if (command.mode === "sign-up") {
     const name = command.name;
     if (!name) return Effect.fail(new LoginFailure());
-    return authEffect(() => auth.signUp.email({
+    return authEffect(() =>
+      auth.signUp.email({
+        email: command.email,
+        password: command.password,
+        name,
+      }),
+    );
+  }
+  return authEffect(() =>
+    auth.signIn.email({
       email: command.email,
       password: command.password,
-      name,
-    }));
-  }
-  return authEffect(() => auth.signIn.email({
-    email: command.email,
-    password: command.password,
-  }));
+    }),
+  );
 }
 
 export function createLoginAuth(locale: Locale): LoginAuthShape {

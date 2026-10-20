@@ -36,10 +36,7 @@ test("merges same-date Markdown and D1 records by key with no skipped boundary",
     summary("markdown:/vi/library/c", "markdown", sameDate),
     summary("markdown:/vi/library/a", "markdown", sameDate),
   ];
-  const d1 = [
-    summary("d1:d", "d1", sameDate),
-    summary("d1:b", "d1", sameDate),
-  ];
+  const d1 = [summary("d1:d", "d1", sameDate), summary("d1:b", "d1", sameDate)];
 
   expect(mergeSummaries(markdown, d1, 3).map(({ key }) => key)).toEqual([
     "markdown:/vi/library/e",
@@ -53,10 +50,7 @@ test("same-date pages stay within their locale and kind partition", () => {
   const englishNews = summary("markdown:/en/library/news", "markdown", sameDate, "en", "news");
   const databaseNews = summary("d1:news", "d1", sameDate, "en", "news");
 
-  expect(mergeSummaries([englishNews], [databaseNews], 2)).toEqual([
-    englishNews,
-    databaseNews,
-  ]);
+  expect(mergeSummaries([englishNews], [databaseNews], 2)).toEqual([englishNews, databaseNews]);
 });
 
 test("cursor is bound to the locale and kind filters", () => {
@@ -72,11 +66,16 @@ test("cursor is bound to the locale and kind filters", () => {
   expect(() => parseCursor(encoded, { locale: "en", kind: null })).toThrow();
   expect(() => parseCursor(encoded, { locale: "vi", kind: "event" })).toThrow();
   expect(() => parseCursor("not-a-cursor", { locale: "vi", kind: null })).toThrow();
-  expect(() => parseCursor(encodeCursor({
-    v: 1,
-    locale: "vi",
-    kind: null,
-    publishedAt: "2026-99-99T00:00:00.000Z",
-    key: "d1:123",
-  }), { locale: "vi", kind: null })).toThrow();
+  expect(() =>
+    parseCursor(
+      encodeCursor({
+        v: 1,
+        locale: "vi",
+        kind: null,
+        publishedAt: "2026-99-99T00:00:00.000Z",
+        key: "d1:123",
+      }),
+      { locale: "vi", kind: null },
+    ),
+  ).toThrow();
 });

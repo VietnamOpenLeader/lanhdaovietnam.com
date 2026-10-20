@@ -24,5 +24,5 @@ export const loader = defineHandler(async (context) => {
 export type Props = InferProps<typeof loader>;
 
 export const head = defineHead<Props>((_context, props) =>
-  buildAuthHead({ locale: props.locale, title: props.title })
+  buildAuthHead({ locale: props.locale, title: props.title }),
 );

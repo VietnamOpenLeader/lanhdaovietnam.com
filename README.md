@@ -16,12 +16,14 @@ The supported UI locales are `vi`, `en`, and `zh-CN`. Markdown lives under `page
 ## Quality gates
 
 ```sh
+bun run format
+bun run ship:gate
 bun run check
 bunx playwright install --with-deps chromium
 bun run test:e2e
 ```
 
-`bun run check` runs catalog/content validation, type/unit/API/CLI tests, and the production build. Browser E2E is separate because it requires Chromium.
+`bun run ship:gate` checks formatting, Biome lint, TypeScript, and the `write-legible-code` TypeScript checker. `bun run format` applies formatting. `bun run check` also runs catalog/content validation, unit/API/CLI tests, and the production build. Browser E2E is separate because it requires Chromium.
 
 ## Content workflows
 

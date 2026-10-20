@@ -46,10 +46,7 @@ async function migratedDatabase(): Promise<Database> {
   return db;
 }
 
-function insertRecord(
-  db: Database,
-  overrides: Partial<ContentRecord> = {},
-): void {
+function insertRecord(db: Database, overrides: Partial<ContentRecord> = {}): void {
   const record = { ...contentRecord, ...overrides };
   db.query(`
     INSERT INTO content_posts (
@@ -85,10 +82,13 @@ test("the content migration preserves legacy posts and adds indexed localized ro
   db.run("INSERT INTO posts (title, body) VALUES (?, ?)", ["keep", "unchanged"]);
   await applyProjectMigrations(db, { after: 0 });
 
-  expect(db.query("SELECT title, body FROM posts").get())
-    .toEqual({ title: "keep", body: "unchanged" });
-  expect(db.query("SELECT name FROM sqlite_master WHERE name = 'content_posts'").get())
-    .not.toBeNull();
+  expect(db.query("SELECT title, body FROM posts").get()).toEqual({
+    title: "keep",
+    body: "unchanged",
+  });
+  expect(
+    db.query("SELECT name FROM sqlite_master WHERE name = 'content_posts'").get(),
+  ).not.toBeNull();
 
   db.close();
 });
@@ -98,12 +98,14 @@ test("content constraints reject invalid locales, unpublished dates, event order
 
   expect(() => insertRecord(db, { locale: "cn" })).toThrow();
   expect(() => insertRecord(db, { status: "published", published_at: null })).toThrow();
-  expect(() => insertRecord(db, {
-    kind: "event",
-    starts_at: "2026-10-20T00:00:00.000Z",
-    ends_at: "2026-10-19T00:00:00.000Z",
-    location: "Hanoi",
-  })).toThrow();
+  expect(() =>
+    insertRecord(db, {
+      kind: "event",
+      starts_at: "2026-10-20T00:00:00.000Z",
+      ends_at: "2026-10-19T00:00:00.000Z",
+      location: "Hanoi",
+    }),
+  ).toThrow();
   expect(() => insertRecord(db, { version: 0 })).toThrow();
 
   db.close();
@@ -160,7 +162,11 @@ test("public list, kind list, slug lookup, and translations use their indexes", 
   ];
 
   for (const plan of plans) {
-    const details = db.query(plan.sql).all().map((row) => JSON.stringify(row)).join(" ");
+    const details = db
+      .query(plan.sql)
+      .all()
+      .map((row) => JSON.stringify(row))
+      .join(" ");
     expect(details).toContain(plan.index);
     expect(details).not.toContain("SCAN content_posts");
     if (plan.index.startsWith("content_locale_") && plan.index.endsWith("published")) {

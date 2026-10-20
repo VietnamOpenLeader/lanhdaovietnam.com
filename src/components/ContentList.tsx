@@ -41,12 +41,7 @@ function nextPageURL(locale: Locale, kind: ContentKind | null, cursor: string): 
   return `/${locale}/?${query}#content`;
 }
 
-export default function ContentList({
-  locale,
-  items,
-  kind,
-  nextCursor,
-}: ContentListProps) {
+export default function ContentList({ locale, items, kind, nextCursor }: ContentListProps) {
   const { _ } = useLingui();
 
   return (

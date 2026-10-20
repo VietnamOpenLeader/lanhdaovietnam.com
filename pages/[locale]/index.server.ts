@@ -17,5 +17,5 @@ export const head = defineHead<Props>((_context, props) =>
     title: props.title,
     description: props.description,
     siteURL: env.SITE_URL,
-  })
+  }),
 );

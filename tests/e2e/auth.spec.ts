@@ -41,8 +41,9 @@ test("email signup establishes a session that can be signed out", async ({ page 
   await page.getByLabel("Email").fill(`browser-${randomUUID()}@example.test`);
   await page.getByLabel("Mật khẩu").fill("browser-test-password-123");
 
-  const signupResponse = page.waitForResponse((response) =>
-    response.url().includes("/api/auth/sign-up/email") && response.request().method() === "POST"
+  const signupResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/auth/sign-up/email") && response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Tạo tài khoản" }).click();
   expect((await signupResponse).status()).toBe(200);

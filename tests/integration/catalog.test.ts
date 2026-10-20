@@ -75,9 +75,9 @@ test("merged catalog paginates across same-date Markdown and D1 records without 
     expect(seen.has("markdown:/vi/library/khoi-nguon")).toBe(true);
     for (const { id } of savedRecords) expect(seen.has(`d1:${id}`)).toBe(true);
 
-    const english = readPage(await (await fetch(
-      `${baseURL}/api/posts?locale=en&kind=article&limit=20`,
-    )).json());
+    const english = readPage(
+      await (await fetch(`${baseURL}/api/posts?locale=en&kind=article&limit=20`)).json(),
+    );
     expect(english.data.every(({ locale }) => locale === "en")).toBe(true);
     expect(english.data.some(({ source }) => source === "markdown")).toBe(true);
 
@@ -85,9 +85,7 @@ test("merged catalog paginates across same-date Markdown and D1 records without 
       `${baseURL}/api/posts?locale=en&kind=article&limit=1&cursor=not-a-cursor`,
     );
     expect(invalidCursor.status).toBe(400);
-    const emptyCursor = await fetch(
-      `${baseURL}/api/posts?locale=en&kind=article&limit=1&cursor=`,
-    );
+    const emptyCursor = await fetch(`${baseURL}/api/posts?locale=en&kind=article&limit=1&cursor=`);
     expect(emptyCursor.status).toBe(400);
 
     const wrongFilter = new URLSearchParams({
@@ -95,18 +93,20 @@ test("merged catalog paginates across same-date Markdown and D1 records without 
       kind: "article",
       limit: "1",
     });
-    const firstPage = readPage(await (await fetch(
-      `${baseURL}/api/posts?locale=vi&kind=article&limit=1`,
-    )).json());
+    const firstPage = readPage(
+      await (await fetch(`${baseURL}/api/posts?locale=vi&kind=article&limit=1`)).json(),
+    );
     if (firstPage.nextCursor) wrongFilter.set("cursor", firstPage.nextCursor);
     expect((await fetch(`${baseURL}/api/posts?${wrongFilter}`)).status).toBe(400);
   } finally {
-    await Promise.all(savedRecords.map(({ id, version }) =>
-      fetch(`${baseURL}/api/posts/${id}`, {
-        method: "DELETE",
-        headers: adminHeaders(),
-        body: JSON.stringify({ version }),
-      })
-    ));
+    await Promise.all(
+      savedRecords.map(({ id, version }) =>
+        fetch(`${baseURL}/api/posts/${id}`, {
+          method: "DELETE",
+          headers: adminHeaders(),
+          body: JSON.stringify({ version }),
+        }),
+      ),
+    );
   }
 });

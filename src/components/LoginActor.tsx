@@ -17,11 +17,13 @@ export function useLoginActor(locale: Locale) {
 
   useEffect(() => {
     const fiber = Effect.runFork(
-      Effect.scoped(Effect.gen(function*() {
-        const loginActor = yield* createEffectActor(loginMachine);
-        yield* Effect.sync(() => setActorState({ locale, actor: loginActor }));
-        yield* Effect.never;
-      })).pipe(Effect.provideService(LoginAuth, createLoginAuth(locale))),
+      Effect.scoped(
+        Effect.gen(function* () {
+          const loginActor = yield* createEffectActor(loginMachine);
+          yield* Effect.sync(() => setActorState({ locale, actor: loginActor }));
+          yield* Effect.never;
+        }),
+      ).pipe(Effect.provideService(LoginAuth, createLoginAuth(locale))),
     );
 
     return () => {

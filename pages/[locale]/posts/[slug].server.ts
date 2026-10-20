@@ -58,5 +58,5 @@ export const head = defineHead<Props>((_context, props) =>
     entry: props.entry,
     alternates: props.translations,
     siteURL: env.SITE_URL,
-  })
+  }),
 );

@@ -1,19 +1,7 @@
 import { Data, Schema } from "effect";
 import matter from "gray-matter";
-import {
-  isAlias,
-  isMap,
-  isPair,
-  isScalar,
-  isSeq,
-  parseDocument,
-  type Node,
-  type Pair,
-} from "yaml";
-import {
-  contentMetadataSchema,
-  type ContentMetadata,
-} from "./contracts";
+import { isAlias, isMap, isPair, isScalar, isSeq, parseDocument, type Node, type Pair } from "yaml";
+import { contentMetadataSchema, type ContentMetadata } from "./contracts";
 
 const maxYamlAliasCount = 20;
 export const maxMarkdownSourceBytes = 256 * 1024;
@@ -45,25 +33,31 @@ export interface ParsedMarkdownContent {
 
 function hasUnsafeYamlTag(node: Node | Pair<Node, Node>): boolean {
   if (isPair<Node, Node>(node)) {
-    return hasUnsafeYamlTag(node.key) || node.value !== null && hasUnsafeYamlTag(node.value);
+    return hasUnsafeYamlTag(node.key) || (node.value !== null && hasUnsafeYamlTag(node.value));
   }
   if (isAlias(node)) return false;
   if (isScalar(node)) return node.tag !== undefined && !standardYamlTags.has(node.tag);
   if (isMap<Node, Node>(node)) {
-    return (node.tag !== undefined && !standardYamlTags.has(node.tag))
-      || node.items.some((pair) => hasUnsafeYamlTag(pair));
+    return (
+      (node.tag !== undefined && !standardYamlTags.has(node.tag)) ||
+      node.items.some((pair) => hasUnsafeYamlTag(pair))
+    );
   }
   if (isSeq<Node>(node)) {
-    return (node.tag !== undefined && !standardYamlTags.has(node.tag))
-      || node.items.some((item) => hasUnsafeYamlTag(item));
+    return (
+      (node.tag !== undefined && !standardYamlTags.has(node.tag)) ||
+      node.items.some((item) => hasUnsafeYamlTag(item))
+    );
   }
   return false;
 }
 
 function parseYamlFrontmatter(source: string): object {
   const document = parseDocument(source, strictYamlOptions);
-  if (document.errors.length > 0
-    || (document.contents !== null && hasUnsafeYamlTag(document.contents))) {
+  if (
+    document.errors.length > 0 ||
+    (document.contents !== null && hasUnsafeYamlTag(document.contents))
+  ) {
     throw new MarkdownFrontmatterError({ code: "INVALID_FRONTMATTER" });
   }
   const value = document.toJS({ maxAliasCount: maxYamlAliasCount });

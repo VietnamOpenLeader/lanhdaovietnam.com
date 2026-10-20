@@ -1,0 +1,48 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "!src/router.tsx",
+      "!src/routes",
+      "pages/**/*.ts",
+      "pages/**/*.tsx",
+      "routes/**/*.ts",
+      "middleware/**/*.ts",
+      "db/**/*.ts",
+      "scripts/**/*.ts",
+      "tests/**/*.ts",
+      "tests/**/*.tsx",
+      "env.ts",
+      "lingui.config.ts",
+      "vite.config.mts",
+      "void.config.ts",
+      "playwright.config.ts"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  }
+}

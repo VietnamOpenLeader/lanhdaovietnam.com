@@ -20,26 +20,28 @@ function absoluteURL(path: string, siteURL: string): string {
 }
 
 async function countD1Published(locale: Locale): Promise<number> {
-  const [row] = await db.select({ total: count() })
+  const [row] = await db
+    .select({ total: count() })
     .from(contentPosts)
-    .where(and(
-      eq(contentPosts.locale, locale),
-      eq(contentPosts.status, "published"),
-    ));
+    .where(and(eq(contentPosts.locale, locale), eq(contentPosts.status, "published")));
   return row?.total ?? 0;
 }
 
-async function localePageCounts(): Promise<ReadonlyArray<{
-  readonly locale: Locale;
-  readonly count: number;
-}>> {
-  return Promise.all(locales.map(async (locale) => {
-    const [d1Count, markdownCount] = await Promise.all([
-      countD1Published(locale),
-      Promise.resolve(markdownIndex.filter((entry) => entry.locale === locale).length),
-    ]);
-    return { locale, count: d1Count + markdownCount };
-  }));
+async function localePageCounts(): Promise<
+  ReadonlyArray<{
+    readonly locale: Locale;
+    readonly count: number;
+  }>
+> {
+  return Promise.all(
+    locales.map(async (locale) => {
+      const [d1Count, markdownCount] = await Promise.all([
+        countD1Published(locale),
+        Promise.resolve(markdownIndex.filter((entry) => entry.locale === locale).length),
+      ]);
+      return { locale, count: d1Count + markdownCount };
+    }),
+  );
 }
 
 export async function createSitemapIndex(siteURL: string): Promise<string> {
@@ -75,10 +77,7 @@ async function skipSitemapEntries(
   return { cursor, remaining };
 }
 
-async function readSitemapPage(
-  locale: Locale,
-  pageNumber: number,
-): Promise<ReadonlyArray<string>> {
+async function readSitemapPage(locale: Locale, pageNumber: number): Promise<ReadonlyArray<string>> {
   const skipCount = (pageNumber - 1) * maxEntriesPerPart;
   const skipped = await skipSitemapEntries(locale, skipCount);
   if (skipped.remaining > 0) return [];
@@ -111,8 +110,8 @@ export async function createSitemapPage(
   }
 
   const paths = await readSitemapPage(locale, pageNumber);
-  const entries = paths.map((path) =>
-    `<url><loc>${escapeXML(absoluteURL(path, siteURL))}</loc></url>`
+  const entries = paths.map(
+    (path) => `<url><loc>${escapeXML(absoluteURL(path, siteURL))}</loc></url>`,
   );
   const xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${entries.join("")}</urlset>`;
   if (new TextEncoder().encode(xml).byteLength > maxXMLBytesPerPart) {

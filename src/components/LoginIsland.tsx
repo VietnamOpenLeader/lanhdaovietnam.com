@@ -51,11 +51,7 @@ export default function LoginIsland({
 }: LoginIslandProps) {
   return (
     <LocaleProvider locale={locale} messages={messages}>
-      <LoginForm
-        availableProviders={availableProviders}
-        locale={locale}
-        userName={userName}
-      />
+      <LoginForm availableProviders={availableProviders} locale={locale} userName={userName} />
     </LocaleProvider>
   );
 }
@@ -68,8 +64,7 @@ function LoginForm({ locale, availableProviders, userName }: LoginFormProps) {
   const { actor, snapshot } = useLoginActor(locale);
   const state = snapshot?.value ?? "idle";
   const pending = state === "submitting" || state === "signingOut";
-  const signedIn = state === "authenticated"
-    || (userName !== null && state !== "signedOut");
+  const signedIn = state === "authenticated" || (userName !== null && state !== "signedOut");
 
   useEffect(() => {
     if (state === "authenticated") window.location.assign(`/${locale}/`);
@@ -129,11 +124,7 @@ function LoginForm({ locale, availableProviders, userName }: LoginFormProps) {
             <form className="mt-5 grid gap-4" onSubmit={submitEmail}>
               {mode === "sign-up" ? (
                 <div className="grid gap-2">
-                  <label
-                    className="text-sm font-medium"
-                    htmlFor="login-name"
-                    id="login-name-label"
-                  >
+                  <label className="text-sm font-medium" htmlFor="login-name" id="login-name-label">
                     {_(displayName)}
                   </label>
                   <Input
@@ -148,11 +139,7 @@ function LoginForm({ locale, availableProviders, userName }: LoginFormProps) {
                 </div>
               ) : null}
               <div className="grid gap-2">
-                <label
-                  className="text-sm font-medium"
-                  htmlFor="login-email"
-                  id="login-email-label"
-                >
+                <label className="text-sm font-medium" htmlFor="login-email" id="login-email-label">
                   {_(email)}
                 </label>
                 <Input

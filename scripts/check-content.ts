@@ -7,10 +7,7 @@ import {
   maxMarkdownSourceBytes,
   parseMarkdownContent,
 } from "../src/content/frontmatter";
-import {
-  buildMarkdownIndex,
-  type PublishedMarkdownEntry,
-} from "../src/content/markdown";
+import { buildMarkdownIndex, type PublishedMarkdownEntry } from "../src/content/markdown";
 import type { ContentMetadata } from "../src/content/contracts";
 
 const pagesRoot = join(import.meta.dir, "..", "pages");

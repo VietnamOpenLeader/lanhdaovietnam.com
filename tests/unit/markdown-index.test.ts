@@ -48,9 +48,6 @@ test("rejects drafts, path/frontmatter disagreement and duplicate translations",
   expect(() => buildMarkdownIndex([mismatched])).toThrow();
 
   expect(() =>
-    buildMarkdownIndex([
-      markdownPage("vi", "one", "One"),
-      markdownPage("vi", "two", "Two"),
-    ])
+    buildMarkdownIndex([markdownPage("vi", "one", "One"), markdownPage("vi", "two", "Two")]),
   ).toThrow();
 });

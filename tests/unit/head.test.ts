@@ -1,9 +1,5 @@
 import { expect, test } from "bun:test";
-import {
-  buildAuthHead,
-  buildContentHead,
-  buildHomeHead,
-} from "../../src/seo/head";
+import { buildAuthHead, buildContentHead, buildHomeHead } from "../../src/seo/head";
 import type { ContentSummary } from "../../src/content/pagination";
 
 const vietnameseArticle: ContentSummary = {
@@ -37,8 +33,9 @@ test("content head uses one canonical and localized published alternates", () =>
   });
 
   expect(head.htmlAttrs?.lang).toBe("vi");
-  expect(head.link?.filter((item) => item.rel === "canonical"))
-    .toEqual([{ rel: "canonical", href: "https://lanhdaovietnam.com/vi/posts/khoi-nguon" }]);
+  expect(head.link?.filter((item) => item.rel === "canonical")).toEqual([
+    { rel: "canonical", href: "https://lanhdaovietnam.com/vi/posts/khoi-nguon" },
+  ]);
   expect(head.link?.filter((item) => item.rel === "alternate")).toContainEqual({
     rel: "alternate",
     hreflang: "en",
@@ -70,14 +67,18 @@ test("JSON-LD escapes markup and uses event schema only for events", () => {
 });
 
 test("home and login head use locale and keep authentication out of search", () => {
-  expect(buildHomeHead({
-    locale: "zh-CN",
-    title: "越南领导力",
-    description: "介绍",
-    siteURL: "https://lanhdaovietnam.com",
-  }).htmlAttrs?.lang).toBe("zh-CN");
-  expect(buildAuthHead({
-    locale: "vi",
-    title: "Đăng nhập",
-  }).meta).toContainEqual({ name: "robots", content: "noindex,nofollow" });
+  expect(
+    buildHomeHead({
+      locale: "zh-CN",
+      title: "越南领导力",
+      description: "介绍",
+      siteURL: "https://lanhdaovietnam.com",
+    }).htmlAttrs?.lang,
+  ).toBe("zh-CN");
+  expect(
+    buildAuthHead({
+      locale: "vi",
+      title: "Đăng nhập",
+    }).meta,
+  ).toContainEqual({ name: "robots", content: "noindex,nofollow" });
 });

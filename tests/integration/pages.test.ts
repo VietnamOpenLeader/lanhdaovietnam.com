@@ -30,9 +30,7 @@ async function createContent(
   return readSavedRecord(await response.json());
 }
 
-async function deleteContent(
-  record: Schema.Schema.Type<typeof savedRecordSchema>,
-): Promise<void> {
+async function deleteContent(record: Schema.Schema.Type<typeof savedRecordSchema>): Promise<void> {
   await fetch(`${baseURL}/api/posts/${record.id}`, {
     method: "DELETE",
     headers: adminHeaders(),
@@ -63,7 +61,7 @@ test("localized home pages and login render server HTML for supported locales", 
   const loginHTML = await login.text();
   expect(login.status).toBe(200);
   expect(loginHTML).toContain("Sign in to your account");
-  expect(loginHTML).toContain("name=\"email\"");
+  expect(loginHTML).toContain('name="email"');
   expect(loginHTML).toContain("GitHub sign-in is not configured.");
   expect(loginHTML).toContain("Google sign-in is not configured.");
   expect(loginHTML).toContain("X sign-in is not configured.");
@@ -77,28 +75,34 @@ test("D1 detail pages render safe Markdown and only link to published translatio
   const records: Array<Schema.Schema.Type<typeof savedRecordSchema>> = [];
 
   try {
-    records.push(await createContent({
-      ...publishedPost,
-      translationKey,
-      slug: viSlug,
-      body: '<script>alert(1)</script>\n\n[bad](javascript:alert(1))\n\nBài viết an toàn.',
-    }));
-    records.push(await createContent({
-      ...publishedPost,
-      translationKey,
-      locale: "en",
-      slug: enSlug,
-      title: "Safe translated page",
-      description: "English translation.",
-      body: "# Safe translated page",
-    }));
-    records.push(await createContent({
-      ...publishedPost,
-      translationKey: `${translationKey}-draft`,
-      slug: draftSlug,
-      status: "draft",
-      publishedAt: null,
-    }));
+    records.push(
+      await createContent({
+        ...publishedPost,
+        translationKey,
+        slug: viSlug,
+        body: "<script>alert(1)</script>\n\n[bad](javascript:alert(1))\n\nBài viết an toàn.",
+      }),
+    );
+    records.push(
+      await createContent({
+        ...publishedPost,
+        translationKey,
+        locale: "en",
+        slug: enSlug,
+        title: "Safe translated page",
+        description: "English translation.",
+        body: "# Safe translated page",
+      }),
+    );
+    records.push(
+      await createContent({
+        ...publishedPost,
+        translationKey: `${translationKey}-draft`,
+        slug: draftSlug,
+        status: "draft",
+        publishedAt: null,
+      }),
+    );
 
     const detail = await fetch(`${baseURL}/vi/posts/${viSlug}`);
     const html = await detail.text();

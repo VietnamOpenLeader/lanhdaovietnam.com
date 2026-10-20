@@ -50,36 +50,42 @@ test("localized Markdown and D1 pages have canonical, alternate, social, and JSO
 
   try {
     for (const item of translatedContent) {
-      ids.push(await createContent({
-        ...publishedPost,
-        translationKey,
-        locale: item.locale,
-        slug: item.slug,
-        title: item.title,
-        description: `Description for ${item.locale}`,
-        body: `# ${item.title}`,
-      }));
+      ids.push(
+        await createContent({
+          ...publishedPost,
+          translationKey,
+          locale: item.locale,
+          slug: item.slug,
+          title: item.title,
+          description: `Description for ${item.locale}`,
+          body: `# ${item.title}`,
+        }),
+      );
     }
-    ids.push(await createContent({
-      ...publishedPost,
-      translationKey: `event-${crypto.randomUUID()}`,
-      slug: eventSlug,
-      kind: "event",
-      title: "Event with metadata",
-      description: "Event metadata is visible.",
-      startsAt: "2026-11-01T00:00:00.000Z",
-      endsAt: "2026-11-02T00:00:00.000Z",
-      location: "Hanoi",
-      body: "# Event",
-    }));
+    ids.push(
+      await createContent({
+        ...publishedPost,
+        translationKey: `event-${crypto.randomUUID()}`,
+        slug: eventSlug,
+        kind: "event",
+        title: "Event with metadata",
+        description: "Event metadata is visible.",
+        startsAt: "2026-11-01T00:00:00.000Z",
+        endsAt: "2026-11-02T00:00:00.000Z",
+        location: "Hanoi",
+        body: "# Event",
+      }),
+    );
     const draftSlug = `seo-draft-${crypto.randomUUID()}`;
-    ids.push(await createContent({
-      ...publishedPost,
-      translationKey: `seo-draft-${crypto.randomUUID()}`,
-      slug: draftSlug,
-      status: "draft",
-      publishedAt: null,
-    }));
+    ids.push(
+      await createContent({
+        ...publishedPost,
+        translationKey: `seo-draft-${crypto.randomUUID()}`,
+        slug: draftSlug,
+        status: "draft",
+        publishedAt: null,
+      }),
+    );
 
     const markdownPages = [
       ["/vi/library/khoi-nguon", "vi", "Khởi nguồn"],

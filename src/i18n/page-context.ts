@@ -13,7 +13,5 @@ export interface PageContext {
 
 export function localeFromPath(path: string): Locale | null {
   const pathLocale = path.split("/")[1];
-  return pathLocale === "vi" || pathLocale === "en" || pathLocale === "zh-CN"
-    ? pathLocale
-    : null;
+  return pathLocale === "vi" || pathLocale === "en" || pathLocale === "zh-CN" ? pathLocale : null;
 }

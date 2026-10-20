@@ -3,11 +3,7 @@ import type { CloudContext } from "void";
 import { getUser } from "void/auth";
 import { env } from "void/env";
 import type { ContentError } from "../core/errors";
-import {
-  authorizeContentAdmin,
-  authorizeContentChecker,
-  type AdminIdentity,
-} from "./policy";
+import { authorizeContentAdmin, authorizeContentChecker, type AdminIdentity } from "./policy";
 import {
   configuredSocialProviderNames,
   socialCredentials,
@@ -38,7 +34,7 @@ export function requireContentAdmin(
   context: CloudContext,
 ): Effect.Effect<AdminIdentity, ContentError> {
   const authorization = context.req.header("Authorization");
-  const userId = authorization === undefined ? getUser()?.id ?? null : null;
+  const userId = authorization === undefined ? (getUser()?.id ?? null) : null;
   return authorizeContentAdmin(
     {
       userId,
@@ -58,7 +54,7 @@ export function requireContentChecker(
   context: CloudContext,
 ): Effect.Effect<AdminIdentity, ContentError> {
   const authorization = context.req.header("Authorization");
-  const userId = authorization === undefined ? getUser()?.id ?? null : null;
+  const userId = authorization === undefined ? (getUser()?.id ?? null) : null;
   return authorizeContentChecker(
     {
       userId,

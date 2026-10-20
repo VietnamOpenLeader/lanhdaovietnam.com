@@ -14,10 +14,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
 
   return (
     <LocaleProvider locale={pageContext.locale} messages={pageContext.messages}>
-      <SiteChrome
-        locale={pageContext.locale}
-        translationLinks={pageContext.translationLinks}
-      >
+      <SiteChrome locale={pageContext.locale} translationLinks={pageContext.translationLinks}>
         {children}
       </SiteChrome>
     </LocaleProvider>

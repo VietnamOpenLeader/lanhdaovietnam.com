@@ -8,10 +8,7 @@ import {
   type ContentMetadata,
   type Locale,
 } from "./contracts";
-import {
-  compareSummaries,
-  type ContentSummary,
-} from "./pagination";
+import { compareSummaries, type ContentSummary } from "./pagination";
 
 export interface PublishedMarkdownEntry extends ContentMetadata {
   readonly key: string;
@@ -27,7 +24,7 @@ interface TranslationGroup {
 }
 
 const libraryPath = /^\/(vi|en|zh-CN)\/library\/([a-z0-9]+(?:-[a-z0-9]+)*)$/u;
-const alphabetical = (left: string, right: string) => left < right ? -1 : left > right ? 1 : 0;
+const alphabetical = (left: string, right: string) => (left < right ? -1 : left > right ? 1 : 0);
 
 function invalidMarkdown(path: string, translationKey?: string): never {
   throw new ContentError({
@@ -68,11 +65,13 @@ function assertPublishedMetadata(
   route: { readonly locale: Locale; readonly slug: string },
   metadata: ContentMetadata,
 ): asserts metadata is PublishedMarkdownEntry {
-  if (metadata.status !== "published"
-    || metadata.publishedAt === null
-    || metadata.locale !== route.locale
-    || metadata.slug !== route.slug
-    || page.title !== metadata.title) {
+  if (
+    metadata.status !== "published" ||
+    metadata.publishedAt === null ||
+    metadata.locale !== route.locale ||
+    metadata.slug !== route.slug ||
+    page.title !== metadata.title
+  ) {
     return invalidMarkdown(page.path);
   }
 }
@@ -83,7 +82,7 @@ function assertUniqueTranslation(
   paths: Set<string>,
   groups: Map<string, TranslationGroup>,
 ): void {
-  if (paths.has(page.path)) return invalidMarkdown(page.path, metadata.translationKey);
+  if (paths.has(page.path)) invalidMarkdown(page.path, metadata.translationKey);
   paths.add(page.path);
 
   const group = groups.get(metadata.translationKey);
@@ -95,7 +94,7 @@ function assertUniqueTranslation(
     return;
   }
   if (group.kind !== metadata.kind || group.locales.has(metadata.locale)) {
-    return invalidMarkdown(page.path, metadata.translationKey);
+    invalidMarkdown(page.path, metadata.translationKey);
   }
   group.locales.add(metadata.locale);
 }

@@ -19,11 +19,14 @@ export function toContentError(error: unknown): ContentError {
 
 export function contentErrorResponse(error: unknown): Response {
   const contentError = toContentError(error);
-  return Response.json({
-    error: {
-      code: contentError.code,
-      message: errorMessages[contentError.code],
-      ...(contentError.fields ? { fields: contentError.fields } : {}),
+  return Response.json(
+    {
+      error: {
+        code: contentError.code,
+        message: errorMessages[contentError.code],
+        ...(contentError.fields ? { fields: contentError.fields } : {}),
+      },
     },
-  }, { status: contentError.status });
+    { status: contentError.status },
+  );
 }

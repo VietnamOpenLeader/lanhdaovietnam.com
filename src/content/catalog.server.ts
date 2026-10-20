@@ -89,9 +89,7 @@ function toD1Summary(
 }
 
 function d1Summary(record: ContentMetadataRecord): ContentSummary | null {
-  return record.publishedAt
-    ? toD1Summary({ ...record, publishedAt: record.publishedAt })
-    : null;
+  return record.publishedAt ? toD1Summary({ ...record, publishedAt: record.publishedAt }) : null;
 }
 
 export async function listCatalog(request: CatalogRequest): Promise<CatalogPage> {
@@ -99,13 +97,15 @@ export async function listCatalog(request: CatalogRequest): Promise<CatalogPage>
   const cursor = request.cursor === undefined ? undefined : parseCursor(request.cursor, filter);
   const partition = markdownPartitions.get(partitionKey(request.locale, filter.kind)) ?? [];
   const markdown = markdownAfterCursor(partition, cursor, request.limit + 1);
-  const databaseRecords = await runContentProgram(listContent({
-    locale: request.locale,
-    ...(request.kind ? { kind: request.kind } : {}),
-    includeDrafts: false,
-    limit: request.limit + 1,
-    ...(cursor ? { cursor } : {}),
-  }));
+  const databaseRecords = await runContentProgram(
+    listContent({
+      locale: request.locale,
+      ...(request.kind ? { kind: request.kind } : {}),
+      includeDrafts: false,
+      limit: request.limit + 1,
+      ...(cursor ? { cursor } : {}),
+    }),
+  );
   const d1 = databaseRecords.flatMap((record) => {
     const summary = d1Summary(record);
     return summary ? [summary] : [];
@@ -113,15 +113,16 @@ export async function listCatalog(request: CatalogRequest): Promise<CatalogPage>
   const candidates = mergeSummaries(markdown, d1, request.limit + 1);
   const items = candidates.slice(0, request.limit);
   const lastItem = items.at(-1);
-  const nextCursor = candidates.length > request.limit && lastItem
-    ? encodeCursor({
-      v: 1,
-      locale: request.locale,
-      kind: filter.kind,
-      publishedAt: lastItem.publishedAt,
-      key: lastItem.key,
-    })
-    : null;
+  const nextCursor =
+    candidates.length > request.limit && lastItem
+      ? encodeCursor({
+          v: 1,
+          locale: request.locale,
+          kind: filter.kind,
+          publishedAt: lastItem.publishedAt,
+          key: lastItem.key,
+        })
+      : null;
 
   return { items, nextCursor };
 }
@@ -130,12 +131,12 @@ export async function listTranslations(
   translationKey: string,
   source: ContentSource,
 ): Promise<ReadonlyArray<ContentSummary>> {
-  const summaries = source === "markdown"
-    ? markdownTranslations(markdownIndex, translationKey)
-    : (await runContentProgram(listPublishedTranslations(translationKey)))
-      .flatMap((record) => {
-        const summary = d1Summary(record);
-        return summary ? [summary] : [];
-      });
+  const summaries =
+    source === "markdown"
+      ? markdownTranslations(markdownIndex, translationKey)
+      : (await runContentProgram(listPublishedTranslations(translationKey))).flatMap((record) => {
+          const summary = d1Summary(record);
+          return summary ? [summary] : [];
+        });
   return [...summaries].sort(compareSummaries);
 }

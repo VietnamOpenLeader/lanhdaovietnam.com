@@ -54,15 +54,16 @@ test("content CRUD requires admin credentials and rejects stale versions", async
   });
   expect(duplicate.status).toBe(409);
 
-  const update = () => fetch(`${url}/${createdRecord.id}`, {
-    method: "PUT",
-    headers: adminHeaders(),
-    body: JSON.stringify({
-      ...payload,
-      title: "Updated",
-      version: createdRecord.version,
-    }),
-  });
+  const update = () =>
+    fetch(`${url}/${createdRecord.id}`, {
+      method: "PUT",
+      headers: adminHeaders(),
+      body: JSON.stringify({
+        ...payload,
+        title: "Updated",
+        version: createdRecord.version,
+      }),
+    });
   const updated = await update();
   expect(updated.status).toBe(200);
   const updatedRecord = readRecord(await updated.json());
@@ -158,11 +159,12 @@ test("signed-in members cannot write content without the admin allowlist", async
 test("concurrent creates for the same locale and slug yield one conflict", async () => {
   const key = `concurrent-${crypto.randomUUID()}`;
   const payload = { ...publishedPost, translationKey: key, slug: key };
-  const create = () => fetch(`${baseURL}/api/posts`, {
-    method: "POST",
-    headers: adminHeaders(),
-    body: JSON.stringify(payload),
-  });
+  const create = () =>
+    fetch(`${baseURL}/api/posts`, {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify(payload),
+    });
   const responses = await Promise.all([create(), create()]);
   expect(responses.map(({ status }) => status).sort()).toEqual([201, 409]);
 });

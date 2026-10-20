@@ -2,10 +2,7 @@ import { realpath, readFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 import { Data, Effect, Schema } from "effect";
-import {
-  contentInputSchema,
-  updateContentSchema,
-} from "../src/content/contracts";
+import { contentInputSchema, updateContentSchema } from "../src/content/contracts";
 import { parseMarkdownContent } from "../src/content/frontmatter";
 import {
   contentCheckResultSchema,
@@ -82,10 +79,7 @@ function parsePositiveInteger(value: string | undefined, label: string): number 
   return parsed;
 }
 
-function assertPositionals(
-  positionals: ReadonlyArray<string>,
-  expected: number,
-): void {
+function assertPositionals(positionals: ReadonlyArray<string>, expected: number): void {
   if (positionals.length !== expected) {
     failArguments("Invalid positional arguments.");
   }
@@ -220,15 +214,16 @@ async function runList(
   if (locale !== "vi" && locale !== "en" && locale !== "zh-CN") {
     return failArguments("list requires --locale vi, en, or zh-CN.");
   }
-  if (args.values.kind !== undefined
-    && args.values.kind !== "article"
-    && args.values.kind !== "news"
-    && args.values.kind !== "event") {
+  if (
+    args.values.kind !== undefined &&
+    args.values.kind !== "article" &&
+    args.values.kind !== "news" &&
+    args.values.kind !== "event"
+  ) {
     return failArguments("Invalid --kind value.");
   }
-  const limit = args.values.limit === undefined
-    ? 20
-    : parsePositiveInteger(args.values.limit, "limit");
+  const limit =
+    args.values.limit === undefined ? 20 : parsePositiveInteger(args.values.limit, "limit");
   if (limit > 100) return failArguments("--limit must not exceed 100.");
   const query = new URLSearchParams({ locale, limit: String(limit) });
   if (args.values.kind) query.set("kind", args.values.kind);
@@ -262,11 +257,14 @@ async function runCreate(
   if (!args.values.file) return failArguments("create requires --file PATH.");
   const content = validateContent(await readJSONFile(args.values.file));
   const client = buildClient(env, true);
-  printJSON(io, await client.request("/api/posts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(content),
-  }));
+  printJSON(
+    io,
+    await client.request("/api/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(content),
+    }),
+  );
 }
 
 async function runUpdate(
@@ -281,11 +279,14 @@ async function runUpdate(
   const version = parsePositiveInteger(args.values.version, "version");
   const content = withVersion(await readJSONFile(args.values.file), version);
   const client = buildClient(env, true);
-  printJSON(io, await client.request(`/api/posts/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(content),
-  }));
+  printJSON(
+    io,
+    await client.request(`/api/posts/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(content),
+    }),
+  );
 }
 
 async function runDelete(
@@ -319,11 +320,14 @@ async function runImport(
   if (!path) return failArguments("import requires a Markdown file path.");
   const content = await readMarkdownFile(path);
   const client = buildClient(env, true);
-  printJSON(io, await client.request("/api/posts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(content),
-  }));
+  printJSON(
+    io,
+    await client.request("/api/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(content),
+    }),
+  );
 }
 
 async function runCheck(
@@ -339,22 +343,20 @@ async function runCheck(
     return;
   }
 
-  const client = buildClient(
-    env,
-    true,
-    env.CONTENT_CHECK_TOKEN ?? env.CONTENT_API_TOKEN,
-  );
-  const deployedCheck = decodeContentCheckResult(
-    await client.request("/api/content-check"),
-  );
+  const client = buildClient(env, true, env.CONTENT_CHECK_TOKEN ?? env.CONTENT_API_TOKEN);
+  const deployedCheck = decodeContentCheckResult(await client.request("/api/content-check"));
   const candidateBatches = splitCandidates(entries);
-  const candidateChecks = await Promise.all(candidateBatches.map(async (batch) =>
-    decodeContentCheckResult(await client.request("/api/content-check", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ entries: batch }),
-    }))
-  ));
+  const candidateChecks = await Promise.all(
+    candidateBatches.map(async (batch) =>
+      decodeContentCheckResult(
+        await client.request("/api/content-check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entries: batch }),
+        }),
+      ),
+    ),
+  );
   const candidateConflictKeys = [
     ...new Set(candidateChecks.flatMap((result) => result.conflictKeys)),
   ];
@@ -373,7 +375,9 @@ async function runCheck(
   }
 }
 
-function projectContentMetadata(entry: ReturnType<typeof scanLocalContent>[number]): ContentMetadata {
+function projectContentMetadata(
+  entry: ReturnType<typeof scanLocalContent>[number],
+): ContentMetadata {
   return {
     translationKey: entry.translationKey,
     locale: entry.locale,
@@ -422,11 +426,16 @@ async function executeCommand(
     return 0;
   }
 
-  const actions: Readonly<Record<string, (
-    args: ParsedArguments,
-    env: Readonly<Record<string, string | undefined>>,
-    io: ContentCLIIO,
-  ) => Promise<void>>> = {
+  const actions: Readonly<
+    Record<
+      string,
+      (
+        args: ParsedArguments,
+        env: Readonly<Record<string, string | undefined>>,
+        io: ContentCLIIO,
+      ) => Promise<void>
+    >
+  > = {
     list: runList,
     get: runGet,
     create: runCreate,
@@ -448,18 +457,24 @@ export function runContentCLI(
 ): Promise<number> {
   const program = Effect.tryPromise({
     try: () => executeCommand(argv, io, env),
-    catch: (error) => error instanceof ContentCLIFailure
-      ? error
-      : new ContentCLIFailure({
-        exitCode: 1,
-        message: error instanceof ContentApiFailure
-          ? `Content API request failed (${error.code}).`
-          : "Content command failed.",
+    catch: (error) =>
+      error instanceof ContentCLIFailure
+        ? error
+        : new ContentCLIFailure({
+            exitCode: 1,
+            message:
+              error instanceof ContentApiFailure
+                ? `Content API request failed (${error.code}).`
+                : "Content command failed.",
+          }),
+  }).pipe(
+    Effect.catch((error) =>
+      Effect.sync(() => {
+        io.stderr(`${error.message}\n`);
+        return error.exitCode;
       }),
-  }).pipe(Effect.catch((error) => Effect.sync(() => {
-    io.stderr(`${error.message}\n`);
-    return error.exitCode;
-  })));
+    ),
+  );
 
   return Effect.runPromise(program);
 }

@@ -76,8 +76,9 @@ test("CLI performs content create, get, update, list, delete, and Markdown impor
 
     const get = await runCLI(["get", created.id]);
     expect(get.exitCode).toBe(0);
-    expect(Schema.decodeUnknownSync(profileSchema)(JSON.parse(get.stdout)).data.title)
-      .toBe(input.title);
+    expect(Schema.decodeUnknownSync(profileSchema)(JSON.parse(get.stdout)).data.title).toBe(
+      input.title,
+    );
 
     await writeFile(jsonPath, JSON.stringify({ ...input, title: "Updated from CLI" }));
     const update = await runCLI([
@@ -108,7 +109,10 @@ test("CLI performs content create, get, update, list, delete, and Markdown impor
     expect(list.stdout).toContain(key);
 
     const deleteWithoutConfirmation = await runCLI([
-      "delete", created.id, "--version", String(updated.version),
+      "delete",
+      created.id,
+      "--version",
+      String(updated.version),
     ]);
     expect(deleteWithoutConfirmation.exitCode).toBe(2);
     expect(deleteWithoutConfirmation.stderr).toContain("--yes");

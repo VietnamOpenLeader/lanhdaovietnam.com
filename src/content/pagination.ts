@@ -1,11 +1,6 @@
 import { Schema } from "effect";
 import { ContentError } from "../core/errors";
-import {
-  contentKinds,
-  locales,
-  type ContentKind,
-  type Locale,
-} from "./contracts";
+import { contentKinds, locales, type ContentKind, type Locale } from "./contracts";
 
 export interface ContentSummary {
   readonly key: string;
@@ -37,9 +32,7 @@ export interface CursorFilter {
 
 const cursorKeySchema = Schema.String.check(
   Schema.isMaxLength(256),
-  Schema.isPattern(
-    /^(?:d1:[A-Za-z0-9_-]+|markdown:\/(?:vi|en|zh-CN)\/library\/[a-z0-9-]+)$/u,
-  ),
+  Schema.isPattern(/^(?:d1:[A-Za-z0-9_-]+|markdown:\/(?:vi|en|zh-CN)\/library\/[a-z0-9-]+)$/u),
 );
 const cursorSchema = Schema.Struct({
   v: Schema.Literal(1),
@@ -82,9 +75,7 @@ export function parseCursor(encoded: string, filter: CursorFilter): Cursor {
   try {
     const cursor = Schema.decodeUnknownSync(cursorSchema, {
       onExcessProperty: "error",
-    })(
-      JSON.parse(decodeBase64Url(encoded)),
-    );
+    })(JSON.parse(decodeBase64Url(encoded)));
     if (cursor.locale !== filter.locale || cursor.kind !== filter.kind) {
       return invalidCursor();
     }
@@ -111,23 +102,37 @@ export function mergeSummaries(
   let d1Index = 0;
 
   while (merged.length < limit && markdownIndex < markdown.length && d1Index < d1.length) {
-    if (compareSummaries(markdown[markdownIndex]!, d1[d1Index]!) <= 0) {
-      merged.push(markdown[markdownIndex++]!);
+    const markdownItem = markdown[markdownIndex];
+    const d1Item = d1[d1Index];
+    if (!markdownItem || !d1Item) break;
+
+    if (compareSummaries(markdownItem, d1Item) <= 0) {
+      merged.push(markdownItem);
+      markdownIndex += 1;
     } else {
-      merged.push(d1[d1Index++]!);
+      merged.push(d1Item);
+      d1Index += 1;
     }
   }
 
   while (merged.length < limit && markdownIndex < markdown.length) {
-    merged.push(markdown[markdownIndex++]!);
+    const item = markdown[markdownIndex];
+    if (!item) break;
+    merged.push(item);
+    markdownIndex += 1;
   }
   while (merged.length < limit && d1Index < d1.length) {
-    merged.push(d1[d1Index++]!);
+    const item = d1[d1Index];
+    if (!item) break;
+    merged.push(item);
+    d1Index += 1;
   }
   return merged;
 }
 
 export function isAfterCursor(summary: ContentSummary, cursor: Cursor): boolean {
-  return summary.publishedAt < cursor.publishedAt
-    || (summary.publishedAt === cursor.publishedAt && summary.key < cursor.key);
+  return (
+    summary.publishedAt < cursor.publishedAt ||
+    (summary.publishedAt === cursor.publishedAt && summary.key < cursor.key)
+  );
 }

@@ -28,18 +28,17 @@ export interface AdminRequest {
 }
 
 function fail(status: 401 | 403): Effect.Effect<never, ContentError> {
-  return Effect.fail(new ContentError({
-    status,
-    code: status === 401 ? "UNAUTHENTICATED" : "FORBIDDEN",
-  }));
+  return Effect.fail(
+    new ContentError({
+      status,
+      code: status === 401 ? "UNAUTHENTICATED" : "FORBIDDEN",
+    }),
+  );
 }
 
 function decodeExpectedDigest(value?: string): Uint8Array | null {
   if (!value || !sha256HexPattern.test(value)) return null;
-  return Uint8Array.from(
-    value.match(/.{2}/gu) ?? [],
-    (byte) => Number.parseInt(byte, 16),
-  );
+  return Uint8Array.from(value.match(/.{2}/gu) ?? [], (byte) => Number.parseInt(byte, 16));
 }
 
 function hashToken(token: string): Effect.Effect<Uint8Array, ContentError> {
@@ -66,7 +65,7 @@ function authorizeBearer(
     Effect.flatMap((candidate) =>
       expected.reduce((matched, digest) => sameDigest(candidate, digest) || matched, false)
         ? Effect.succeed({ kind: "token" } as const)
-        : fail(401)
+        : fail(401),
     ),
   );
 }
@@ -77,8 +76,10 @@ function authorizeSession(
 ): Effect.Effect<AdminIdentity, ContentError> {
   if (!request.userId) return fail(401);
   if (!policy.adminUserIds.includes(request.userId)) return fail(403);
-  if (mutatingMethods.has(request.method)
-    && (!request.origin || request.origin !== request.expectedOrigin)) {
+  if (
+    mutatingMethods.has(request.method) &&
+    (!request.origin || request.origin !== request.expectedOrigin)
+  ) {
     return fail(403);
   }
   return Effect.succeed({ kind: "session", userId: request.userId });
@@ -99,10 +100,7 @@ export function authorizeContentChecker(
   policy: ContentCheckPolicy,
 ): Effect.Effect<AdminIdentity, ContentError> {
   if (request.authorization !== undefined) {
-    return authorizeBearer(request.authorization, [
-      policy.tokenSha256,
-      policy.readOnlyTokenSha256,
-    ]);
+    return authorizeBearer(request.authorization, [policy.tokenSha256, policy.readOnlyTokenSha256]);
   }
   return authorizeSession(request, policy);
 }

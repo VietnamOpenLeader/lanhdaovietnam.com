@@ -34,3 +34,14 @@ The implementation follows the approved plan. These choices fill in details the 
 ## Verification boundary
 
 Playwright E2E ran successfully against the installed system Chrome in desktop and mobile projects. The plan's local browser-install command (`bunx playwright install --with-deps chromium`) was not run because that would install/download outside the worktree; CI contains and runs that exact command. This is a documented verification substitution, not a claim that the install command passed locally.
+
+## Quality gate
+
+### Use one formatter/linter and the installed TypeScript legibility checker
+
+- **When:** After Review Army.
+- **Scenario:** Contributors need one local gate for formatting, linting, typecheck, and the project's TypeScript legibility standard, without adding separate formatter and ESLint toolchains.
+- **Plan gap:** The plan required code-quality checks but did not choose the toolchain or specify how to invoke the global legibility skill.
+- **Decision:** Use Biome for formatting and linting, TypeScript/Void for type checks, and call the installed `write-legible-code` checker from `scripts/ship-gate.sh`. CI uses Biome and TypeScript checks; the skill-specific checker remains a local gate with an overrideable path because the skill is not a repository dependency.
+- **Reach:** Formatting/lint rules are reproducible in CI; local ship-gate also enforces the broader TypeScript legibility rules.
+- **Verdict / confidence:** sound / medium.

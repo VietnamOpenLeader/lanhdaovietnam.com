@@ -8,11 +8,25 @@ import { fileURLToPath } from "node:url";
 const sourceRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const scratchRoot = join(sourceRoot, ".void", "test-projects");
 const copyDirectories = [
-  "db", "middleware", "pages", "public", "routes", "scripts", "src", "tests",
+  "db",
+  "middleware",
+  "pages",
+  "public",
+  "routes",
+  "scripts",
+  "src",
+  "tests",
 ];
 const rootConfigFiles = [
-  ".gitignore", "package.json", "bun.lock", "tsconfig.json",
-  "vite.config.mts", "void.config.ts", "env.ts", "auth.ts", "playwright.config.ts",
+  ".gitignore",
+  "package.json",
+  "bun.lock",
+  "tsconfig.json",
+  "vite.config.mts",
+  "void.config.ts",
+  "env.ts",
+  "auth.ts",
+  "playwright.config.ts",
 ];
 
 async function getFreePort(): Promise<number> {
@@ -39,8 +53,11 @@ function copyProject(projectRoot: string): void {
         recursive: true,
         filter: (path) => {
           const relativePath = relative(sourceRoot, path);
-          return relativePath !== "src/router.tsx" && relativePath !== "src/routes"
-            && !relativePath.startsWith("src/routes/");
+          return (
+            relativePath !== "src/router.tsx" &&
+            relativePath !== "src/routes" &&
+            !relativePath.startsWith("src/routes/")
+          );
         },
       });
     } catch (error) {
@@ -91,7 +108,10 @@ async function waitForServer(
   if (server.exitCode !== null) {
     throw new Error(`Vite exited before becoming ready (${server.exitCode})`);
   }
-  const ready = await fetch(baseURL).then(() => true, () => false);
+  const ready = await fetch(baseURL).then(
+    () => true,
+    () => false,
+  );
   if (ready) return;
   if (Date.now() >= deadline) throw new Error("Vite did not become ready within 30 seconds");
   await new Promise((resolveWait) => setTimeout(resolveWait, 100));
@@ -122,18 +142,13 @@ async function runSuite(
     e2e: "tests/e2e",
   }[suite];
   if (!testPath) throw new Error("Expected a test suite: api, cli, or e2e");
-  const executable = suite === "e2e"
-    ? join(projectRoot, "node_modules/.bin/playwright")
-    : processExecPath();
-  const process = spawn(
-    executable,
-    ["test", testPath],
-    {
-      cwd: projectRoot,
-      env: testEnvironment(baseURL, projectRoot, adminToken, contentCheckToken),
-      stdio: "inherit",
-    },
-  );
+  const executable =
+    suite === "e2e" ? join(projectRoot, "node_modules/.bin/playwright") : processExecPath();
+  const process = spawn(executable, ["test", testPath], {
+    cwd: projectRoot,
+    env: testEnvironment(baseURL, projectRoot, adminToken, contentCheckToken),
+    stdio: "inherit",
+  });
   return new Promise((resolveExit, reject) => {
     process.once("error", reject);
     process.once("close", (code) => resolveExit(code ?? 1));

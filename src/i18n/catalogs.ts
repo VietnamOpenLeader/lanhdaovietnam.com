@@ -42,8 +42,10 @@ function parseCatalog(source: CatalogSource): LinguiCatalog {
 function assertTranslations(source: LinguiCatalog, target: LinguiCatalog, locale: Locale): void {
   const sourceIds = Object.keys(source).sort();
   const targetIds = Object.keys(target).sort();
-  if (sourceIds.length !== targetIds.length
-    || sourceIds.some((id, index) => id !== targetIds[index])) {
+  if (
+    sourceIds.length !== targetIds.length ||
+    sourceIds.some((id, index) => id !== targetIds[index])
+  ) {
     throw new Error(`${locale} catalog message IDs differ from ${sourceLocale}`);
   }
   const sourceMissing = sourceIds.find((id) => source[id].translation.trim().length === 0);

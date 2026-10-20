@@ -1,12 +1,5 @@
 import { sql } from "void/db";
-import {
-  check,
-  index,
-  integer,
-  sqliteTable,
-  text,
-  uniqueIndex,
-} from "void/schema-d1";
+import { check, index, integer, sqliteTable, text, uniqueIndex } from "void/schema-d1";
 import type { ContentKind, ContentStatus, Locale } from "../../src/content/contracts";
 
 export const contentPosts = sqliteTable(
@@ -32,10 +25,14 @@ export const contentPosts = sqliteTable(
   (table) => [
     uniqueIndex("content_locale_slug").on(table.locale, table.slug),
     uniqueIndex("content_translation_locale").on(table.translationKey, table.locale),
-    index("content_locale_published")
-      .on(table.locale, table.status, table.publishedAt, table.id),
-    index("content_locale_kind_published")
-      .on(table.locale, table.status, table.kind, table.publishedAt, table.id),
+    index("content_locale_published").on(table.locale, table.status, table.publishedAt, table.id),
+    index("content_locale_kind_published").on(
+      table.locale,
+      table.status,
+      table.kind,
+      table.publishedAt,
+      table.id,
+    ),
     index("content_translations").on(table.translationKey, table.status),
     check("content_locale_valid", sql`${table.locale} IN ('vi', 'en', 'zh-CN')`),
     check("content_kind_valid", sql`${table.kind} IN ('article', 'news', 'event')`),

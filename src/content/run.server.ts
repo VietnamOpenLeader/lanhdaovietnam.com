@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { db } from "void/db";
-import { ContentError } from "../core/errors";
+import type { ContentError } from "../core/errors";
 import {
   ContentRepository,
   makeContentRepository,

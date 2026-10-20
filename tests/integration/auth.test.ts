@@ -40,6 +40,8 @@ test("supports email signup and keeps authenticated members non-admin", async ()
     headers: { Cookie: setCookie?.split(";", 1)[0] ?? "" },
   });
   expect(profile.status).toBe(200);
-  expect(Schema.decodeUnknownSync(profileSchema)(await profile.json()))
-    .toEqual({ ...created.user, isAdmin: false });
+  expect(Schema.decodeUnknownSync(profileSchema)(await profile.json())).toEqual({
+    ...created.user,
+    isAdmin: false,
+  });
 });

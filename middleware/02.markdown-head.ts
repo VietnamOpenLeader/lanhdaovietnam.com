@@ -8,11 +8,14 @@ export default defineMiddleware(async (context, next) => {
   const path = new URL(context.req.url).pathname;
   const entry = getMarkdownEntry(path);
   if (entry) {
-    context.set("headDefaults", buildContentHead({
-      entry: markdownSummary(entry),
-      alternates: markdownTranslations(markdownIndex, entry.translationKey),
-      siteURL: env.SITE_URL,
-    }));
+    context.set(
+      "headDefaults",
+      buildContentHead({
+        entry: markdownSummary(entry),
+        alternates: markdownTranslations(markdownIndex, entry.translationKey),
+        siteURL: env.SITE_URL,
+      }),
+    );
   }
   await next();
 });

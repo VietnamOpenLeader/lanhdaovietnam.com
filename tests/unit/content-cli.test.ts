@@ -44,13 +44,15 @@ test("CLI rejects a token argument without echoing its value", async () => {
 
 test("content client rejects remote HTTP origins before transport", () => {
   let fetchCalled = false;
-  expect(() => createContentClient({
-    baseURL: "http://api.example.test",
-    fetcher: async () => {
-      fetchCalled = true;
-      return Response.json({});
-    },
-  })).toThrow();
+  expect(() =>
+    createContentClient({
+      baseURL: "http://api.example.test",
+      fetcher: async () => {
+        fetchCalled = true;
+        return Response.json({});
+      },
+    }),
+  ).toThrow();
   expect(fetchCalled).toBe(false);
 });
 

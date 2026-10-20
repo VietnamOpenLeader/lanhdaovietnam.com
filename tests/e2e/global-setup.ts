@@ -33,8 +33,9 @@ async function warmLoginIsland(baseURL: string): Promise<void> {
 
 export default async function globalSetup(config: FullConfig): Promise<void> {
   const configuredBaseURL = config.projects[0]?.use.baseURL;
-  const baseURL = process.env.TEST_BASE_URL
-    ?? (typeof configuredBaseURL === "string" ? configuredBaseURL : undefined);
+  const baseURL =
+    process.env.TEST_BASE_URL ??
+    (typeof configuredBaseURL === "string" ? configuredBaseURL : undefined);
   if (!baseURL) throw new Error("Playwright requires a configured baseURL.");
   await warmLoginIsland(baseURL);
 }

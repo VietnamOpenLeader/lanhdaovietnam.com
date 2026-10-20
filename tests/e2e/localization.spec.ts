@@ -13,7 +13,8 @@ test("language links follow published Markdown counterparts", async ({ page }) =
   await expect(page.locator("html")).toHaveAttribute("lang", "vi");
   expect(loginModules).toEqual([]);
 
-  await page.getByRole("navigation", { name: "Ngôn ngữ" })
+  await page
+    .getByRole("navigation", { name: "Ngôn ngữ" })
     .getByRole("link", { name: "English", exact: true })
     .click();
 

@@ -43,7 +43,10 @@ export interface ContentRepositoryShape {
   ) => Effect.Effect<ReadonlyArray<ContentMetadataRecord>, ContentError>;
   readonly findPublishedForTranslationKeys: (
     keys: ReadonlyArray<string>,
-  ) => Effect.Effect<ReadonlyArray<{ readonly translationKey: string; readonly locale: Locale }>, ContentError>;
+  ) => Effect.Effect<
+    ReadonlyArray<{ readonly translationKey: string; readonly locale: Locale }>,
+    ContentError
+  >;
   readonly create: (input: ContentInput) => Effect.Effect<ContentRecord, ContentError>;
   readonly replace: (
     id: string,
@@ -59,9 +62,7 @@ export const ContentRepository = Context.Service<ContentRepositoryShape>(
 
 function readErrorMessage(error: unknown, depth = 0): string {
   if (depth > 4 || typeof error !== "object" || error === null) return "";
-  const message = "message" in error && typeof error.message === "string"
-    ? error.message
-    : "";
+  const message = "message" in error && typeof error.message === "string" ? error.message : "";
   const cause = "cause" in error ? readErrorMessage(error.cause, depth + 1) : "";
   return `${message} ${cause}`;
 }
@@ -81,42 +82,43 @@ function makeRepository(database: typeof import("void/db").db): ContentRepositor
   return {
     list: ({ locale, kind, includeDrafts, limit, cursor }) =>
       databaseEffect(async () => {
-        const d1CursorId = cursor?.key.startsWith("d1:")
-          ? cursor.key.slice("d1:".length)
-          : null;
+        const d1CursorId = cursor?.key.startsWith("d1:") ? cursor.key.slice("d1:".length) : null;
         const conditions = [
           eq(contentPosts.locale, locale),
           ...(includeDrafts ? [] : [eq(contentPosts.status, "published")]),
           ...(kind ? [eq(contentPosts.kind, kind)] : []),
           ...(cursor
-            ? [d1CursorId === null
-              ? lte(contentPosts.publishedAt, cursor.publishedAt)
-              : or(
-                lt(contentPosts.publishedAt, cursor.publishedAt),
-                and(
-                  eq(contentPosts.publishedAt, cursor.publishedAt),
-                  lt(contentPosts.id, d1CursorId),
-                ),
-              )]
+            ? [
+                d1CursorId === null
+                  ? lte(contentPosts.publishedAt, cursor.publishedAt)
+                  : or(
+                      lt(contentPosts.publishedAt, cursor.publishedAt),
+                      and(
+                        eq(contentPosts.publishedAt, cursor.publishedAt),
+                        lt(contentPosts.id, d1CursorId),
+                      ),
+                    ),
+              ]
             : []),
         ];
-        return database.select({
-          id: contentPosts.id,
-          translationKey: contentPosts.translationKey,
-          locale: contentPosts.locale,
-          slug: contentPosts.slug,
-          kind: contentPosts.kind,
-          title: contentPosts.title,
-          description: contentPosts.description,
-          status: contentPosts.status,
-          publishedAt: contentPosts.publishedAt,
-          startsAt: contentPosts.startsAt,
-          endsAt: contentPosts.endsAt,
-          location: contentPosts.location,
-          createdAt: contentPosts.createdAt,
-          updatedAt: contentPosts.updatedAt,
-          version: contentPosts.version,
-        })
+        return database
+          .select({
+            id: contentPosts.id,
+            translationKey: contentPosts.translationKey,
+            locale: contentPosts.locale,
+            slug: contentPosts.slug,
+            kind: contentPosts.kind,
+            title: contentPosts.title,
+            description: contentPosts.description,
+            status: contentPosts.status,
+            publishedAt: contentPosts.publishedAt,
+            startsAt: contentPosts.startsAt,
+            endsAt: contentPosts.endsAt,
+            location: contentPosts.location,
+            createdAt: contentPosts.createdAt,
+            updatedAt: contentPosts.updatedAt,
+            version: contentPosts.version,
+          })
           .from(contentPosts)
           .where(and(...conditions))
           .orderBy(desc(contentPosts.publishedAt), desc(contentPosts.id))
@@ -124,104 +126,127 @@ function makeRepository(database: typeof import("void/db").db): ContentRepositor
       }),
     getById: (id) =>
       databaseEffect(async () => {
-        const [record] = await database.select().from(contentPosts)
-          .where(eq(contentPosts.id, id)).limit(1);
+        const [record] = await database
+          .select()
+          .from(contentPosts)
+          .where(eq(contentPosts.id, id))
+          .limit(1);
         if (!record) throw new ContentError({ status: 404, code: "NOT_FOUND" });
         return record;
       }),
     getPublished: (locale, slug) =>
       databaseEffect(async () => {
-        const [record] = await database.select().from(contentPosts)
-          .where(and(
-            eq(contentPosts.locale, locale),
-            eq(contentPosts.slug, slug),
-            eq(contentPosts.status, "published"),
-          ))
+        const [record] = await database
+          .select()
+          .from(contentPosts)
+          .where(
+            and(
+              eq(contentPosts.locale, locale),
+              eq(contentPosts.slug, slug),
+              eq(contentPosts.status, "published"),
+            ),
+          )
           .limit(1);
         if (!record) throw new ContentError({ status: 404, code: "NOT_FOUND" });
         return record;
       }),
     listPublishedTranslations: (translationKey) =>
       databaseEffect(() =>
-        database.select({
-          id: contentPosts.id,
-          translationKey: contentPosts.translationKey,
-          locale: contentPosts.locale,
-          slug: contentPosts.slug,
-          kind: contentPosts.kind,
-          title: contentPosts.title,
-          description: contentPosts.description,
-          status: contentPosts.status,
-          publishedAt: contentPosts.publishedAt,
-          startsAt: contentPosts.startsAt,
-          endsAt: contentPosts.endsAt,
-          location: contentPosts.location,
-          createdAt: contentPosts.createdAt,
-          updatedAt: contentPosts.updatedAt,
-          version: contentPosts.version,
-        })
+        database
+          .select({
+            id: contentPosts.id,
+            translationKey: contentPosts.translationKey,
+            locale: contentPosts.locale,
+            slug: contentPosts.slug,
+            kind: contentPosts.kind,
+            title: contentPosts.title,
+            description: contentPosts.description,
+            status: contentPosts.status,
+            publishedAt: contentPosts.publishedAt,
+            startsAt: contentPosts.startsAt,
+            endsAt: contentPosts.endsAt,
+            location: contentPosts.location,
+            createdAt: contentPosts.createdAt,
+            updatedAt: contentPosts.updatedAt,
+            version: contentPosts.version,
+          })
           .from(contentPosts)
-          .where(and(
-            eq(contentPosts.translationKey, translationKey),
-            eq(contentPosts.status, "published"),
-          ))
+          .where(
+            and(
+              eq(contentPosts.translationKey, translationKey),
+              eq(contentPosts.status, "published"),
+            ),
+          )
           .orderBy(desc(contentPosts.locale)),
       ),
     findPublishedForTranslationKeys: (keys) => {
       if (keys.length === 0) return Effect.succeed([]);
       return databaseEffect(() =>
-        database.select({
-          translationKey: contentPosts.translationKey,
-          locale: contentPosts.locale,
-        })
+        database
+          .select({
+            translationKey: contentPosts.translationKey,
+            locale: contentPosts.locale,
+          })
           .from(contentPosts)
-          .where(and(
-            inArray(contentPosts.translationKey, [...keys]),
-            eq(contentPosts.status, "published"),
-          )),
+          .where(
+            and(
+              inArray(contentPosts.translationKey, [...keys]),
+              eq(contentPosts.status, "published"),
+            ),
+          ),
       );
     },
     create: (input) =>
       databaseEffect(async () => {
         const now = new Date().toISOString();
-        const [record] = await database.insert(contentPosts).values({
-          ...input,
-          id: crypto.randomUUID(),
-          createdAt: now,
-          updatedAt: now,
-          version: 1,
-        }).returning();
+        const [record] = await database
+          .insert(contentPosts)
+          .values({
+            ...input,
+            id: crypto.randomUUID(),
+            createdAt: now,
+            updatedAt: now,
+            version: 1,
+          })
+          .returning();
         if (!record) throw new ContentError({ status: 500, code: "INTERNAL" });
         return record;
       }),
     replace: (id, input, version) =>
       databaseEffect(async () => {
-        const [record] = await database.update(contentPosts).set({
-          ...input,
-          updatedAt: new Date().toISOString(),
-          version: sql`${contentPosts.version} + 1`,
-        }).where(and(
-          eq(contentPosts.id, id),
-          eq(contentPosts.version, version),
-        )).returning();
+        const [record] = await database
+          .update(contentPosts)
+          .set({
+            ...input,
+            updatedAt: new Date().toISOString(),
+            version: sql`${contentPosts.version} + 1`,
+          })
+          .where(and(eq(contentPosts.id, id), eq(contentPosts.version, version)))
+          .returning();
         if (record) return record;
 
-        const [existing] = await database.select({ id: contentPosts.id })
-          .from(contentPosts).where(eq(contentPosts.id, id)).limit(1);
+        const [existing] = await database
+          .select({ id: contentPosts.id })
+          .from(contentPosts)
+          .where(eq(contentPosts.id, id))
+          .limit(1);
         throw existing
           ? new ContentError({ status: 409, code: "CONFLICT" })
           : new ContentError({ status: 404, code: "NOT_FOUND" });
       }),
     remove: (id, version) =>
       databaseEffect(async () => {
-        const [deleted] = await database.delete(contentPosts).where(and(
-          eq(contentPosts.id, id),
-          eq(contentPosts.version, version),
-        )).returning({ id: contentPosts.id });
+        const [deleted] = await database
+          .delete(contentPosts)
+          .where(and(eq(contentPosts.id, id), eq(contentPosts.version, version)))
+          .returning({ id: contentPosts.id });
         if (deleted) return;
 
-        const [existing] = await database.select({ id: contentPosts.id })
-          .from(contentPosts).where(eq(contentPosts.id, id)).limit(1);
+        const [existing] = await database
+          .select({ id: contentPosts.id })
+          .from(contentPosts)
+          .where(eq(contentPosts.id, id))
+          .limit(1);
         throw existing
           ? new ContentError({ status: 409, code: "CONFLICT" })
           : new ContentError({ status: 404, code: "NOT_FOUND" });

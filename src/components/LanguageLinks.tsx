@@ -34,9 +34,11 @@ export default function LanguageLinks({ locale, translations }: LanguageLinksPro
           <a
             aria-current={isCurrent ? "page" : undefined}
             className="text-sm underline-offset-4 hover:underline"
-            href={translations === undefined
-              ? `/${targetLocale}/`
-              : translation?.url ?? `/${targetLocale}/`}
+            href={
+              translations === undefined
+                ? `/${targetLocale}/`
+                : (translation?.url ?? `/${targetLocale}/`)
+            }
             key={targetLocale}
           >
             {_(languageLabels[targetLocale])}

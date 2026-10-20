@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test("localized content is server-rendered and filters stay within the locale", async ({ page }) => {
+test("localized content is server-rendered and filters stay within the locale", async ({
+  page,
+}) => {
   const consoleErrors: string[] = [];
   page.on("pageerror", (error) => consoleErrors.push(error.message));
 
@@ -16,11 +18,9 @@ test("localized content is server-rendered and filters stay within the locale", 
 
   await page.goto("/vi/library/khoi-nguon");
   await expect(page.getByRole("heading", { name: /Khởi nguồn/u })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Ngôn ngữ" })
-    .getByRole("link", { name: "English" })).toHaveAttribute(
-      "href",
-      "/en/library/origins",
-    );
+  await expect(
+    page.getByRole("navigation", { name: "Ngôn ngữ" }).getByRole("link", { name: "English" }),
+  ).toHaveAttribute("href", "/en/library/origins");
 
   expect(consoleErrors).toEqual([]);
 });

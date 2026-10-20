@@ -12,24 +12,24 @@ export interface ContentClientOptions {
 }
 
 export interface ContentClient {
-  readonly request: (
-    path: string,
-    init?: RequestInit,
-  ) => Promise<unknown>;
+  readonly request: (path: string, init?: RequestInit) => Promise<unknown>;
 }
 
 const bearerTokenPattern = /^[A-Za-z0-9_-]{43,128}$/u;
 const requestTimeoutMs = 15_000;
 
 function isLoopback(hostname: string): boolean {
-  return hostname === "localhost"
-    || hostname === "::1"
-    || hostname === "[::1]"
-    || (hostname.split(".").length === 4
-      && hostname.split(".")[0] === "127"
-      && hostname.split(".").slice(1).every((part) =>
-        /^\d{1,3}$/u.test(part) && Number(part) <= 255
-      ));
+  return (
+    hostname === "localhost" ||
+    hostname === "::1" ||
+    hostname === "[::1]" ||
+    (hostname.split(".").length === 4 &&
+      hostname.split(".")[0] === "127" &&
+      hostname
+        .split(".")
+        .slice(1)
+        .every((part) => /^\d{1,3}$/u.test(part) && Number(part) <= 255))
+  );
 }
 
 function validateBaseURL(value: string): URL {
@@ -41,12 +41,14 @@ function validateBaseURL(value: string): URL {
   }
 
   const loopback = isLoopback(url.hostname);
-  if ((url.protocol !== "https:" && !(url.protocol === "http:" && loopback))
-    || url.username !== ""
-    || url.password !== ""
-    || url.search !== ""
-    || url.hash !== ""
-    || url.pathname !== "/") {
+  if (
+    (url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) ||
+    url.username !== "" ||
+    url.password !== "" ||
+    url.search !== "" ||
+    url.hash !== "" ||
+    url.pathname !== "/"
+  ) {
     throw new ContentApiFailure("INVALID_RESPONSE");
   }
   return url;

@@ -18,7 +18,7 @@ test("accepts complete catalogs and rejects missing locale messages", () => {
       { locale: "vi", json: catalog("Đăng nhập") },
       { locale: "en", json: catalog("Đăng nhập", "Sign in") },
       { locale: "zh-CN", json: catalog("Đăng nhập", "登录") },
-    ])
+    ]),
   ).not.toThrow();
 
   expect(() =>
@@ -26,7 +26,7 @@ test("accepts complete catalogs and rejects missing locale messages", () => {
       { locale: "vi", json: catalog("Đăng nhập") },
       { locale: "en", json: JSON.stringify({}) },
       { locale: "zh-CN", json: catalog("Đăng nhập", "登录") },
-    ])
+    ]),
   ).toThrow();
 });
 
@@ -41,6 +41,6 @@ test("rejects malformed translations and extra catalog fields", () => {
           "auth.signIn": { translation: 42, unexpected: "not part of the catalog contract" },
         }),
       },
-    ])
+    ]),
   ).toThrow();
 });

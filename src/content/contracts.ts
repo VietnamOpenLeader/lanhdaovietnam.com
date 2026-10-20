@@ -81,7 +81,7 @@ export const contentInputSchema = Schema.Struct({
     Schema.makeFilter((body) =>
       new TextEncoder().encode(body).byteLength <= maxBodyBytes
         ? undefined
-        : `Body exceeds ${maxBodyBytes} bytes`
+        : `Body exceeds ${maxBodyBytes} bytes`,
     ),
   ),
 }).check(Schema.makeFilter(validateMetadata));
@@ -92,9 +92,11 @@ export type ContentMetadata = Schema.Schema.Type<typeof contentMetadataSchema>;
 export const updateContentSchema = Schema.Struct({
   ...metadataFields,
   body: Schema.String.check(
-    Schema.makeFilter((body) => new TextEncoder().encode(body).byteLength <= maxBodyBytes
-      ? undefined
-      : `Body exceeds ${maxBodyBytes} bytes`),
+    Schema.makeFilter((body) =>
+      new TextEncoder().encode(body).byteLength <= maxBodyBytes
+        ? undefined
+        : `Body exceeds ${maxBodyBytes} bytes`,
+    ),
   ),
   version: Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)),
 }).check(Schema.makeFilter((value) => validateMetadata(value)));

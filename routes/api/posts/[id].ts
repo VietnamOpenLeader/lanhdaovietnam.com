@@ -3,11 +3,7 @@ import { defineHandler } from "void";
 import { requireContentAdmin } from "../../../src/auth/admin.server";
 import { ContentError } from "../../../src/core/errors";
 import { hasMarkdownTranslationKey } from "../../../src/content/manifest.server";
-import {
-  getContent,
-  removeContent,
-  replaceContent,
-} from "../../../src/content/programs.server";
+import { getContent, removeContent, replaceContent } from "../../../src/content/programs.server";
 import { runContentProgram } from "../../../src/content/run.server";
 import {
   parseContentVersion,
@@ -39,9 +35,7 @@ export const GET = defineHandler(async (context) => {
 export const PUT = defineHandler(async (context) => {
   try {
     await Effect.runPromise(requireContentAdmin(context));
-    const { input, version } = parseVersionedContentInput(
-      await readJsonBody(context.req.raw),
-    );
+    const { input, version } = parseVersionedContentInput(await readJsonBody(context.req.raw));
     if (hasMarkdownTranslationKey(input.translationKey)) {
       throw new ContentError({ status: 409, code: "CONFLICT" });
     }

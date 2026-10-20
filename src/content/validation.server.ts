@@ -48,9 +48,12 @@ export function parseVersionedContentInput(value: unknown): VersionedContentInpu
 
 export function parseContentVersion(value: unknown): number {
   try {
-    return Schema.decodeUnknownSync(Schema.Struct({
-      version: Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)),
-    }), { onExcessProperty: "error" })(value).version;
+    return Schema.decodeUnknownSync(
+      Schema.Struct({
+        version: Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)),
+      }),
+      { onExcessProperty: "error" },
+    )(value).version;
   } catch {
     throw invalidRequest();
   }
