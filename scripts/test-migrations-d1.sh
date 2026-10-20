@@ -2,13 +2,13 @@
 set -euo pipefail
 
 readonly wrangler_version="4.151.0"
-scratch_dir="$(mktemp -d -t content-migrations-d1)"
+scratch_dir="$(mktemp -d)"
 readonly scratch_dir
 
 cleanup() {
   local scratch_name="${scratch_dir##*/}"
   case "$scratch_name" in
-    content-migrations-d1.*)
+    tmp.*)
       if [[ -d "$scratch_dir" ]]; then
         rm -r -- "$scratch_dir"
       fi
@@ -99,7 +99,7 @@ assert_no_migration_helpers() {
   fi
 }
 
-assert_nul_rejected() {
+assert_constraint_failure() {
   local statement="$1"
   local output_file="$scratch_dir/nul-rejected.out"
 
@@ -108,7 +108,7 @@ assert_nul_rejected() {
     --config "$scratch_dir/fresh/wrangler.toml" \
     --persist-to "$scratch_dir/fresh/persist" \
     --command "$statement" >"$output_file" 2>&1; then
-    printf 'Expected D1 to reject NUL-bearing content.\n' >&2
+    printf 'Expected D1 to reject the invalid text value.\n' >&2
     exit 1
   fi
   if ! grep -Fq "CHECK constraint failed" "$output_file"; then
@@ -117,15 +117,35 @@ assert_nul_rejected() {
   fi
 }
 
-assert_d1_rejects_nul_content() {
-  assert_nul_rejected \
+assert_d1_rejects_invalid_text() {
+  assert_constraint_failure \
     "INSERT INTO content_posts (id, translation_key, locale, slug, kind, title, description, body, status, published_at, starts_at, ends_at, location, created_at, updated_at, version) VALUES ('nul-title', 'nul-title', 'vi', 'nul-title', 'article', 'Before'||char(0)||'After', 'Valid description', '# Body', 'draft', NULL, NULL, NULL, NULL, '2026-10-19T10:11:12.000Z', '2026-10-19T10:11:12.000Z', 1)"
-  assert_nul_rejected \
+  assert_constraint_failure \
     "INSERT INTO content_posts (id, translation_key, locale, slug, kind, title, description, body, status, published_at, starts_at, ends_at, location, created_at, updated_at, version) VALUES ('nul-description', 'nul-description', 'vi', 'nul-description', 'article', 'Valid title', 'Before'||char(0)||'After', '# Body', 'draft', NULL, NULL, NULL, NULL, '2026-10-19T10:11:12.000Z', '2026-10-19T10:11:12.000Z', 1)"
-  assert_nul_rejected \
+  assert_constraint_failure \
     "INSERT INTO content_posts (id, translation_key, locale, slug, kind, title, description, body, status, published_at, starts_at, ends_at, location, created_at, updated_at, version) VALUES ('nul-body', 'nul-body', 'vi', 'nul-body', 'article', 'Valid title', 'Valid description', 'Before'||char(0)||'After', 'draft', NULL, NULL, NULL, NULL, '2026-10-19T10:11:12.000Z', '2026-10-19T10:11:12.000Z', 1)"
-  assert_nul_rejected \
+  assert_constraint_failure \
     "INSERT INTO content_posts (id, translation_key, locale, slug, kind, title, description, body, status, published_at, starts_at, ends_at, location, created_at, updated_at, version) VALUES ('nul-location', 'nul-location', 'vi', 'nul-location', 'event', 'Valid title', 'Valid description', '# Body', 'draft', NULL, '2026-10-19T10:11:12.000Z', NULL, 'Before'||char(0)||'After', '2026-10-19T10:11:12.000Z', '2026-10-19T10:11:12.000Z', 1)"
+}
+
+assert_d1_location_length_boundary() {
+  local emoji_200
+  local emoji_201
+  emoji_200="$(printf '😀%.0s' {1..200})"
+  emoji_201="$(printf '😀%.0s' {1..201})"
+
+  run_wrangler d1 execute content-migration-fresh-check \
+    --local \
+    --config "$scratch_dir/fresh/wrangler.toml" \
+    --persist-to "$scratch_dir/fresh/persist" \
+    --command "INSERT INTO content_posts (id, translation_key, locale, slug, kind, title, description, body, status, published_at, starts_at, ends_at, location, created_at, updated_at, version) VALUES ('emoji-location', 'emoji-location', 'vi', 'emoji-location', 'event', 'Valid title', 'Valid description', '# Body', 'draft', NULL, '2026-10-19T10:11:12.000Z', NULL, '$emoji_200', '2026-10-19T10:11:12.000Z', '2026-10-19T10:11:12.000Z', 1)"
+  assert_constraint_failure \
+    "INSERT INTO content_posts (id, translation_key, locale, slug, kind, title, description, body, status, published_at, starts_at, ends_at, location, created_at, updated_at, version) VALUES ('emoji-location-too-long', 'emoji-location-too-long', 'vi', 'emoji-location-too-long', 'event', 'Valid title', 'Valid description', '# Body', 'draft', NULL, '2026-10-19T10:11:12.000Z', NULL, '$emoji_201', '2026-10-19T10:11:12.000Z', '2026-10-19T10:11:12.000Z', 1)"
+  run_wrangler d1 execute content-migration-fresh-check \
+    --local \
+    --config "$scratch_dir/fresh/wrangler.toml" \
+    --persist-to "$scratch_dir/fresh/persist" \
+    --command "DELETE FROM content_posts WHERE id='emoji-location'"
 }
 
 prepare_projects() {
@@ -157,7 +177,8 @@ apply_fresh_migrations() {
     "content-migration-fresh-check" \
     "$scratch_dir/fresh/wrangler.toml" \
     "$scratch_dir/fresh/persist"
-  assert_d1_rejects_nul_content
+  assert_d1_rejects_invalid_text
+  assert_d1_location_length_boundary
 }
 
 prepare_upgrade_through_schema() {

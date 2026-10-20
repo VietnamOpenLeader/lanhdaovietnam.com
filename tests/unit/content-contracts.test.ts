@@ -52,6 +52,22 @@ test("text limits count Unicode code points consistently with SQLite", () => {
   expect(() => decode({ ...publishedPost, title: "😀".repeat(201) })).toThrow();
   expect(() => decode({ ...publishedPost, description: "😀".repeat(500) })).not.toThrow();
   expect(() => decode({ ...publishedPost, description: "😀".repeat(501) })).toThrow();
+  expect(() =>
+    decode({
+      ...publishedPost,
+      kind: "event",
+      startsAt: "2026-11-20T10:00:00.000Z",
+      location: "😀".repeat(200),
+    }),
+  ).not.toThrow();
+  expect(() =>
+    decode({
+      ...publishedPost,
+      kind: "event",
+      startsAt: "2026-11-20T10:00:00.000Z",
+      location: "😀".repeat(201),
+    }),
+  ).toThrow();
 });
 
 test("rejects NUL in bounded content text", () => {

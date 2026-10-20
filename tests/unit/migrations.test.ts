@@ -365,6 +365,13 @@ test("content constraints reject invalid locales, unpublished dates, event order
     expect(() => insertRecord(db, { body: whitespace })).toThrow();
     expect(() => insertRecord(db, { title: whitespace })).toThrow();
     expect(() => insertRecord(db, { description: whitespace })).toThrow();
+    expect(() =>
+      insertRecord(db, {
+        kind: "event",
+        starts_at: "2026-10-20T00:00:00.000Z",
+        location: whitespace,
+      }),
+    ).toThrow();
   }
   expect(() => insertRecord(db, { title: `${"x".repeat(200)} ` })).toThrow();
   expect(() => insertRecord(db, { title: "😀".repeat(201) })).toThrow();
@@ -382,13 +389,6 @@ test("content constraints reject invalid locales, unpublished dates, event order
       }),
     ).toThrow();
   }
-  expect(() =>
-    insertRecord(db, {
-      kind: "event",
-      starts_at: "2026-10-20T00:00:00.000Z",
-      location: "\u00a0\u2003",
-    }),
-  ).toThrow();
   expect(() =>
     insertRecord(db, {
       kind: "event",
@@ -423,6 +423,14 @@ test("content constraints reject invalid locales, unpublished dates, event order
     translation_key: "emoji-description",
     slug: "emoji-description",
     description: "😀".repeat(500),
+  });
+  insertRecord(db, {
+    id: "emoji-location",
+    translation_key: "emoji-location",
+    slug: "emoji-location",
+    kind: "event",
+    starts_at: "2026-10-20T00:00:00.000Z",
+    location: "😀".repeat(200),
   });
   insertRecord(db, {
     id: "non-trimmed-whitespace",
