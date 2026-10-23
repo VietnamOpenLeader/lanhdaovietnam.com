@@ -71,7 +71,7 @@ bunx playwright install --with-deps chromium
 bun run test:e2e
 ```
 
-`bun run ship:gate` runs Biome formatting/lint, Void TypeScript checks, and the installed `write-legible-code` TypeScript checker. If the checker is not in its default `~/.agents/skills/write-legible-code/scripts/check_legibility.py` location, set `WRITE_LEGIBLE_CODE_CHECKER` to its path. `bun run format` applies formatting. CI runs the same Biome and TypeScript checks through `bun run check`; its runner does not include the local-only skill checker.
+`bun run ship:gate` runs Vite+ formatting/lint, Void TypeScript checks, and the installed `write-legible-code` TypeScript checker. If the checker is not in its default `~/.agents/skills/write-legible-code/scripts/check_legibility.py` location, set `WRITE_LEGIBLE_CODE_CHECKER` to its path. `bun run format` applies formatting. CI runs the same Vite+ and TypeScript checks through `bun run check`; its runner does not include the local-only skill checker.
 
 Tests use disposable local Void/D1 projects and synthetic tokens, not production OAuth or API credentials. `test:e2e` exercises Chromium desktop and mobile viewports; if Playwright's browser binary is not installed locally, install it with the command above.
 

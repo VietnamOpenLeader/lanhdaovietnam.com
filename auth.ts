@@ -14,8 +14,12 @@ function readSocialCredentials(
 ): SocialCredentials | undefined {
   const clientId = env[clientIdName];
   const clientSecret = env[clientSecretName];
-  if (typeof clientId !== "string" || clientId.length === 0
-    || typeof clientSecret !== "string" || clientSecret.length === 0) {
+  if (
+    typeof clientId !== "string" ||
+    clientId.length === 0 ||
+    typeof clientSecret !== "string" ||
+    clientSecret.length === 0
+  ) {
     return undefined;
   }
   return socialCredentials(clientId, clientSecret);

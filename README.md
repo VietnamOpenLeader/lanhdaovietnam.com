@@ -23,7 +23,7 @@ bunx playwright install --with-deps chromium
 bun run test:e2e
 ```
 
-`bun run ship:gate` checks formatting, Biome lint, TypeScript, and the `write-legible-code` TypeScript checker. `bun run format` applies formatting. `bun run check` also runs catalog/content validation, unit/API/CLI tests, and the production build. Browser E2E is separate because it requires Chromium.
+`bun run ship:gate` checks Vite+ formatting/lint, TypeScript, and the `write-legible-code` TypeScript checker. `bun run format` applies formatting. `bun run check` also runs catalog/content validation, unit/API/CLI tests, and the production build. Browser E2E is separate because it requires Chromium.
 
 ## Content workflows
 
